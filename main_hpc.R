@@ -166,13 +166,12 @@ age_structure$yinit <- yinit[1:n_groups] # This is used later to calculate propo
 
 
 times <- seq(1, 7*sim_weeks, by = 1) #  1-day time-increments
-mtx <- beta_matrix_no_interv
 
 # Range of vaccine deployment
 k_range_percent <- c(0,seq(0.04,0.2,0.02)) # from 0.04% to 0.2% of the population a day
 
 # Range of social distancing strength
-SD_list <- c(seq(0,1,by=0.1),0.25,0.75)
+SD_list <- seq(0,1,by=0.1)
 
 all_ages <- 'juveniles_adults_elderly'
 vto_ea_SDstrat_allall <- list(vto='elderly_adults',SD_ls=SD_list,from=all_ages,to=all_ages)
