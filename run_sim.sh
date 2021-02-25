@@ -6,4 +6,4 @@
 
 #-l h_vmem=2G
 
-Rscript main_hpc.R Israel 12 0.4 7 6.4 1.5
+Rscript main_hpc.R Israel 30 0.4 7 6.4 1.5
