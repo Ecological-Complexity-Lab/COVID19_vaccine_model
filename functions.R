@@ -6,10 +6,10 @@ elderly <- 7:9
 n_groups <- length(ages) # Number of groups
 
 # Model states
-model_states <- factor(c('S','E','I','A','R','U','H','V','L'), levels = c('S','E','I','A','R','U','H','V','L'))
+model_states <- factor(c('S','E','P','I','A','R','U','H','V','L'), levels = c('S','E','P','I','A','R','U','H','V','L'))
 state_colors <- tibble(state=model_states,
-                       col=factor(c('orange','navy','#c91212','pink','dark green','green','black','gray','cyan'), 
-                                  levels=c('orange','navy','#c91212','pink','dark green','green','black','gray','cyan')))
+                       col=factor(c('yellow','navy','orange','#c91212','pink','dark green','green','black','gray','cyan'), 
+                                  levels=c('yellow','navy','orange','#c91212','pink','dark green','green','black','gray','cyan')))
 
 
 # Functions to run the model ----------------------------------------------
@@ -19,6 +19,7 @@ chunk <- function(x,n) split(x, factor(sort(rank(x)%%n)))
 initialize_population <- function(N){
   x <- c(S=rep(0,n_groups),
          E=rep(0,n_groups),
+         P=rep(0,n_groups),
          I=rep(0,n_groups),
          A=rep(0,n_groups),
          R=rep(0,n_groups),
@@ -91,6 +92,7 @@ parse_model_results <- function(x){
     mutate(state=case_when(
       str_detect(state_age,'S') ~ "S",
       str_detect(state_age,'E') ~ "E",
+      str_detect(state_age,'P') ~ "P",
       str_detect(state_age,'I') ~ "I",
       str_detect(state_age,'A') ~ "A",
       str_detect(state_age,'R') ~ "R",

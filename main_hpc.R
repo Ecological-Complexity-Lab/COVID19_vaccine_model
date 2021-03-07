@@ -20,14 +20,15 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
   gamma <- 1/as.numeric(args[4])
   alpha=1/as.numeric(args[5])
   eta <- 1/as.numeric(args[6])
+  phi <- 1/as.numeric(args[7])
 }
 
 source('initialize_country.R')
 
 JOB_ID <- Sys.getenv("JOB_ID")
 
-run_summary <- tibble(parameter=c('JOB_ID','country','N','sim_weeks','m','beta','q','gamma','alpha','eta'),
-                      value=c(JOB_ID,current_country,N,sim_weeks,m,beta,q,gamma,alpha,eta))
+run_summary <- tibble(parameter=c('JOB_ID','country','N','sim_weeks','m','beta','q','gamma','alpha','eta','phi'),
+                      value=c(JOB_ID,current_country,N,sim_weeks,m,beta,q,gamma,alpha,eta,phi))
 write_csv(run_summary, paste(JOB_ID,'run_summary.csv',sep='_'))
 write_csv(as_tibble(beta_matrix_no_interv), paste(JOB_ID,'beta_matrix_no_interv.csv',sep='_'))
 
@@ -41,6 +42,7 @@ source('functions.R')
 SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   S <- x[sindex]
   E <- x[eindex]
+  P <- x[pindex]
   I <- x[iindex]
   A <- x[aindex]
   R <- x[rindex] 
@@ -50,6 +52,7 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   
   S[S<0] <- 0
   E[E<0] <- 0
+  P[P<0] <- 0
   I[I<0] <- 0
   A[A<0] <- 0
   R[R<0] <- 0
@@ -63,7 +66,7 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   # Select the vaccine target population
   if(stop_vaccination==F){
     vtp <- vto[[vacc_order]]
-    L <- round(S+E+A+U)[vtp]
+    L <- round(S+E+P+A+U)[vtp]
     names(L) <- paste('L',vtp,sep='')
     # print(L)
     
@@ -89,34 +92,36 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   
   # print(t)
   
-  dsdt<-dedt<-didt<-dadt<-drdt<-dudt<-dhdt<-dvdt <- NULL
+  dsdt<-dedt<-dpdt<-didt<-dadt<-drdt<-dudt<-dhdt<-dvdt <- NULL
   for (j in 1:9){
     lambda_j <- 0
     for (l in 1:9){
       N_l <- N*Table_1$Proportion[l]
-      lambda_j <- lambda_j + beta_matrix[j,l]*((I[l]+A[l])/N_l)*S[j]
+      lambda_j <- lambda_j + beta_matrix[j,l]*((I[l]+A[l]+P[l])/N_l)*S[j]
     }
-    L_j <- S[j]+E[j]+A[j]+U[j]
+    L_j <- S[j]+E[j]+A[j]+P[j]+U[j]
     # In case there is no one to vaccinate - avoid division by zero
     if (L_j<1){
       # cat(paste('L_j=0 for age', j))
       dsdt[j] <- -lambda_j
       dedt[j] <- lambda_j-alpha*E[j]
-      didt[j] <- (1-m[j])*alpha*E[j]-eta*I[j]
-      dadt[j] <- m[j]*alpha*E[j]-gamma*A[j]
+      dpdt[j] <- alpha*E[j]-phi*P[j]
+      didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
+      dadt[j] <- m[j]*phi*P[j]-gamma*A[j]
       drdt[j] <- (1-h[j])*eta*I[j]
-      dudt[j] <- gamma*A[j]
+      dudt[j] <- gamma*A[j]-mu[j]*U[j]/L_j
       dhdt[j] <- h[j]*eta*I[j]
       dvdt[j] <- 0
     } else {
       dsdt[j] <- -lambda_j-mu[j]*S[j]/L_j
       dedt[j] <- lambda_j-alpha*E[j]-mu[j]*E[j]/L_j
-      didt[j] <- (1-m[j])*alpha*E[j]-eta*I[j]
-      dadt[j] <- m[j]*alpha*E[j]-gamma*A[j] -mu[j]*A[j]/L_j
+      dpdt[j] <- alpha*E[j]-phi*P[j]-mu[j]*P[j]/L_j
+      didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
+      dadt[j] <- m[j]*phi*P[j]-gamma*A[j]-mu[j]*A[j]/L_j
       drdt[j] <- (1-h[j])*eta*I[j]
       dudt[j] <- gamma*A[j]-mu[j]*U[j]/L_j
       dhdt[j] <- h[j]*eta*I[j]
-      dvdt[j] <- (S[j]+E[j]+A[j]+U[j])*mu[j]/L_j
+      dvdt[j] <- (S[j]+E[j]+P[j]+A[j]+U[j])*mu[j]/L_j
     }
     # if(stop_vaccination==F){
     # if (j %in% vtp){
@@ -126,22 +131,23 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   
   # cat('\n')
   
-  return(list(c(dsdt,dedt,didt,dadt,drdt,dudt,dhdt,dvdt)))
+  return(list(c(dsdt,dedt,dpdt,didt,dadt,drdt,dudt,dhdt,dvdt)))
 }
 
 
 
 # Set up to run the simulation --------------------------------------------
 
-indices <- chunk(1:(n_groups*8),8)
+indices <- chunk(1:(n_groups*9),9)
 sindex <- indices[[1]] # index numbers for age groups for susceptibles
 eindex <- indices[[2]] # index numbers for age groups for exposed
-iindex <- indices[[3]] # index numbers for age groups for infected
-aindex <- indices[[4]] # index numbers for age groups for asmptomatic
-rindex <- indices[[5]] # index numbers for age groups for removed from infected (quarentined and then recovered)
-uindex <- indices[[6]] # index numbers for age groups for recovered from asymptomatic
-hindex <- indices[[7]] # index numbers for age groups for hospitalized
-vindex <- indices[[8]] # index numbers for age groups for vaccinated
+pindex <- indices[[3]] # index numbers for age groups for presymptomatic
+iindex <- indices[[4]] # index numbers for age groups for infected
+aindex <- indices[[5]] # index numbers for age groups for asmptomatic
+rindex <- indices[[6]] # index numbers for age groups for removed from infected (quarentined and then recovered)
+uindex <- indices[[7]] # index numbers for age groups for recovered from asymptomatic
+hindex <- indices[[8]] # index numbers for age groups for hospitalized
+vindex <- indices[[9]] # index numbers for age groups for vaccinated
 
 Table_1 <- age_structure %>% 
   select(i=age_group_id,
