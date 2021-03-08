@@ -19,16 +19,17 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
   m <- as.numeric(args[3])
   gamma <- 1/as.numeric(args[4])
   alpha=1/as.numeric(args[5])
-  eta <- 1/as.numeric(args[6])
-  phi <- 1/as.numeric(args[7])
+  phi <- 1/as.numeric(args[6])
+  eta <- 1/as.numeric(args[7])
+  vacc_eff <- as.numeric(args[8])
 }
 
 source('initialize_country.R')
 
 JOB_ID <- Sys.getenv("JOB_ID")
 
-run_summary <- tibble(parameter=c('JOB_ID','country','N','sim_weeks','m','beta','q','gamma','alpha','eta','phi'),
-                      value=c(JOB_ID,current_country,N,sim_weeks,m,beta,q,gamma,alpha,eta,phi))
+run_summary <- tibble(parameter=c('JOB_ID','country','N','sim_weeks','m','beta','q','1/gamma','1/alpha','1/phi','1/eta','e'),
+                      value=c(JOB_ID,current_country,N,sim_weeks,m,beta,q,1/gamma,1/alpha,1/phi,1/eta,vacc_eff))
 write_csv(run_summary, paste(JOB_ID,'run_summary.csv',sep='_'))
 write_csv(as_tibble(beta_matrix_no_interv), paste(JOB_ID,'beta_matrix_no_interv.csv',sep='_'))
 
@@ -65,7 +66,7 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   
   # Select the vaccine target population
   if(stop_vaccination==F){
-    vtp <- vto[[vacc_order]]
+    vtp <- vto[[vacc_order]] #vtp := vaccine target population; vto := vaccine targeting order (the strategy)
     L <- round(S+E+P+A+U)[vtp]
     names(L) <- paste('L',vtp,sep='')
     # print(L)
@@ -164,7 +165,7 @@ m <- rep(m, 9) # A vector for prob of asymptomatic infections.
 h <- Table_1$h # probability of hospitalization
 
 # Population size and initial size of age groups
-active_infected <- 100 
+active_infected <- 10000
 yinit <- initialize_population(N)
 yinit[iindex] <- round(active_infected*Table_1$prop_infected_total)
 N <- sum(yinit)
@@ -174,7 +175,8 @@ age_structure$yinit <- yinit[1:n_groups] # This is used later to calculate propo
 times <- seq(1, 7*sim_weeks, by = 1) #  1-day time-increments
 
 # Range of vaccine deployment
-k_range_percent <- c(0,seq(0.04,0.2,0.02)) # from 0.04% to 0.2% of the population a day
+# k_range_percent <- c(0,seq(0.04,0.2,0.04)) # from 0.04% to 0.2% of the population a day
+k_range_percent <- c(0,seq(1,2,length.out = 11))
 
 # Range of social distancing strength
 SD_list <- seq(0,1,by=0.1)
@@ -186,7 +188,7 @@ vto_ea_SDstrat_aall <- list(vto='elderly_adults',SD_ls=SD_list,from='adults',to=
 vto_ae_SDstrat_eall <- list(vto='adults_elderly',SD_ls=SD_list,from='elderly',to=all_ages)
 strat_ls <- list(vto_ea_SDstrat_allall,vto_ae_SDstrat_allall,vto_ae_SDstrat_eall,vto_ea_SDstrat_aall)
 
-vaccine_forcing <- set_forcing(effect = 1, effect_time = times)
+vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
 # Run simulation ----------------------------------------------------
 print('Running simulation')

@@ -28,6 +28,8 @@ country_tbl <- read_csv(paste(JOB_ID,'_results_',current_country,'.csv',sep=''))
 country_tbl %<>% filter(time<=7*max_weeks)
 max_time <- country_tbl %>% slice(which.max(time))
 times <- 1:max_time$time
+k_percent_max <- max(country_tbl$k_percent)
+k_range_percent <- unique(country_tbl$k_percent)
 
 source('functions.R')
 
@@ -62,7 +64,7 @@ vaccine <-
   filter(from=='juveniles_adults_elderly') %>% 
   filter(vto=='elderly_adults') %>% 
   filter(SD==0) %>% 
-  filter(k_percent==0.2) %>% 
+  filter(k_percent==k_percent_max) %>% 
   mutate(Proportion=cases/N) %>% 
   mutate(grp='Vaccine') %>% 
   mutate(col=factor(col, levels = state_colors$col))
@@ -104,7 +106,7 @@ vaccine_ea <-
   filter(from=='juveniles_adults_elderly') %>% 
   filter(vto=='elderly_adults') %>% 
   filter(SD==0) %>% 
-  filter(k_percent==0.2) %>% 
+  filter(k_percent==k_percent_max) %>% 
   mutate(Proportion=cases/N) %>% 
   mutate(grp='Elderly first')
 vaccine_ae <- 
@@ -113,7 +115,7 @@ vaccine_ae <-
   filter(from=='juveniles_adults_elderly') %>% 
   filter(vto=='adults_elderly') %>% 
   filter(SD==0) %>% 
-  filter(k_percent==0.2) %>% 
+  filter(k_percent==k_percent_max) %>% 
   mutate(Proportion=cases/N) %>% 
   mutate(grp='Adults first')
 
@@ -290,7 +292,7 @@ dev.off()
 dat <- 
   country_tbl %>%  
   # filter(from=='juveniles_adults_elderly') %>%
-  filter(k_percent%in%c(0,0.1,0.2)) %>% 
+  filter(k_percent%in%c(0,k_range_percent[round(length(k_range_percent)/2)],k_percent_max)) %>% 
   filter(state%in%c('I','A')) %>%
   mutate(k_percent=factor(k_percent)) %>% 
   mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
@@ -329,7 +331,7 @@ dat <-
   country_tbl %>% 
   filter(from=='juveniles_adults_elderly') %>% 
   filter(SD%in%c(0,0.5,0.75)) %>% 
-  filter(k_percent%in%c(0,0.1,0.2)) %>% 
+  filter(k_percent%in%c(0,k_range_percent[round(length(k_range_percent)/2)],k_percent_max)) %>% 
   filter(state%in%c('I','A')) %>%
   group_by(vto, SD, k_percent, time) %>% 
   summarise(z=sum(cases)) %>% # Sum the I+A
@@ -360,7 +362,7 @@ dat <-
   country_tbl %>% 
   filter(from=='juveniles_adults_elderly') %>% 
   filter(SD%in%c(0,0.5,0.8)) %>% 
-  filter(k_percent%in%c(0,0.1,0.2)) %>% 
+  filter(k_percent%in%c(0,k_range_percent[round(length(k_range_percent)/2)],k_percent_max)) %>% 
   filter(state%in%c('I','E','A','S','U','V'))
 
 L_state <- dat %>%
@@ -388,6 +390,7 @@ toplot <-
   left_join(L_state) %>% 
   left_join(V_state) %>% 
   group_by(vto, SD, k_percent, age_group, time) %>% 
+  drop_na() %>%
   mutate(r=alpha*E-eta*I-gamma*A-mu*A/L)
 
 pdf(plotname('ea_ae_r_SD0.pdf'), 12, 8)
@@ -459,6 +462,7 @@ files <- files[-which(str_detect(files, 'run_summary'))]
 dir.create(path = as.character(JOB_ID))
 sapply(files, function(z) file.copy(z, as.character(JOB_ID)))
 sapply(files, unlink)
+file.copy(paste(JOB_ID,'_run_summary.csv',sep=''), as.character(JOB_ID))
 
 
 
