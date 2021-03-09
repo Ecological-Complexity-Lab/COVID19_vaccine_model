@@ -11,5 +11,10 @@ vac %>% gather(key = dose, value = percent, -date) %>%
 
 
 vac %>%
- mutate(Diff_growth = dose2 - lag(dose2),
-         Rate_percent = (Diff_growth )/dose2 * 100)  %>%  print(n=Inf) # growth rate in percent
+ mutate(Diff_growth = dose1 - lag(dose1),
+         vac_rate_percent = (Diff_growth)/dose1 * 100)  %>% 
+  mutate(date=as.Date(date, "%d-%m-%Y")) %>% 
+  filter(date>='2021-02-01') %>%
+  
+   # print(n=Inf)
+  ggplot(aes(x=date, y=vac_rate_percent))+geom_line(size=1.3)

@@ -22,7 +22,7 @@ current_country <- run_summary[2,2]
 for (i in 3:nrow(run_summary)){
   assign(run_summary[i,1], as.numeric(run_summary[i,2]))
 }
-
+  
 # Get data
 country_tbl <- read_csv(paste(JOB_ID,'_results_',current_country,'.csv',sep=''))
 country_tbl %<>% filter(time<=7*max_weeks)
@@ -358,51 +358,51 @@ dev.off()
 # growth rate -------------------------------------------------------------
 # This is calculated from the equations
 
-dat <- 
-  country_tbl %>% 
-  filter(from=='juveniles_adults_elderly') %>% 
-  filter(SD%in%c(0,0.5,0.8)) %>% 
-  filter(k_percent%in%c(0,k_range_percent[round(length(k_range_percent)/2)],k_percent_max)) %>% 
+dat <-
+  country_tbl %>%
+  filter(from=='juveniles_adults_elderly') %>%
+  filter(SD%in%c(0,0.5,0.8)) %>%
+  filter(k_percent%in%c(0,k_range_percent[round(length(k_range_percent)/2)],k_percent_max)) %>%
   filter(state%in%c('I','E','A','S','U','V'))
 
 L_state <- dat %>%
-  filter(state%in%c('E','A','S','U')) %>% 
-  group_by(vto, SD, k_percent, age_group, time) %>% 
+  filter(state%in%c('E','A','S','U')) %>%
+  group_by(vto, SD, k_percent, age_group, time) %>%
   summarise(L=sum(cases)) # L
-I_state <- dat %>% 
-  filter(state=='I') %>% 
+I_state <- dat %>%
+  filter(state=='I') %>%
   dplyr::select(vto, SD, k_percent, age_group, time, I=cases)
-A_state <- dat %>% 
-  filter(state=='A') %>% 
+A_state <- dat %>%
+  filter(state=='A') %>%
   dplyr::select(vto, SD, k_percent, age_group, time, A=cases)
-E_state <- dat %>% 
-  filter(state=='E') %>% 
+E_state <- dat %>%
+  filter(state=='E') %>%
   dplyr::select(vto, SD, k_percent, age_group, time, E=cases)
-V_state <- dat %>% 
-  filter(state=='V') %>% 
-  dplyr::select(vto, SD, k_percent, age_group, time,cases) %>% 
-  group_by(vto, SD, k_percent, age_group) %>% 
+V_state <- dat %>%
+  filter(state=='V') %>%
+  dplyr::select(vto, SD, k_percent, age_group, time,cases) %>%
+  group_by(vto, SD, k_percent, age_group) %>%
   mutate(mu=cases-lag(cases))
 # V_state %>% filter(SD==0,vto=='elderly_adults') %>%  ggplot(aes(x=time, y=mu, color=as.factor(k_percent)))+geom_line()+facet_wrap(~age_group)
-toplot <- 
+
+toplot <-
   left_join(I_state,A_state) %>%
-  left_join(E_state) %>% 
-  left_join(L_state) %>% 
-  left_join(V_state) %>% 
+  left_join(E_state) %>%
+  left_join(L_state) %>%
+  left_join(V_state) %>%
   group_by(vto, SD, k_percent, age_group, time) %>% 
-  drop_na() %>%
   mutate(r=alpha*E-eta*I-gamma*A-mu*A/L)
 
 pdf(plotname('ea_ae_r_SD0.pdf'), 12, 8)
-toplot %>% 
-  filter(SD==0, vto=='elderly_adults') %>% 
+toplot %>%
+  filter(SD==0, vto=='elderly_adults') %>%
   ggplot(aes(time,r, color=as.factor(k_percent), linetype=as.factor(SD)))+
   geom_line(size=1.2)+
   facet_wrap(~age_group)+
   geom_hline(yintercept = 0, linetype='dashed')+
   scale_color_viridis_d()+
   labs(x='Days', y='Growth rate (r)', color='% vaccinated\n per day')+
-  theme_bw() + 
+  theme_bw() +
   theme(axis.text = element_text(size=16, color='black'),
         axis.title = element_text(size=16, color='black'),
         panel.grid.minor = element_blank(),
@@ -410,15 +410,15 @@ toplot %>%
 dev.off()
 
 pdf(plotname('ea_ae_r_SD05.pdf'), 12, 8)
-toplot %>% 
-  filter(SD==0.5, vto=='elderly_adults') %>% 
+toplot %>%
+  filter(SD==0.5, vto=='elderly_adults') %>%
   ggplot(aes(time,r, color=as.factor(k_percent), linetype=as.factor(SD)))+
   geom_line(size=1.2)+
   facet_wrap(~age_group)+
   geom_hline(yintercept = 0, linetype='dashed')+
   scale_color_viridis_d()+
   labs(x='Days', y='Growth rate (r)', color='% vaccinated\n per day')+
-  theme_bw() + 
+  theme_bw() +
   theme(axis.text = element_text(size=16, color='black'),
         axis.title = element_text(size=16, color='black'),
         panel.grid.minor = element_blank(),
@@ -426,29 +426,29 @@ toplot %>%
 dev.off()
 
 pdf(plotname('ea_ae_r_SD08.pdf'), 12, 8)
-toplot %>% 
-  filter(SD==0.8, vto=='elderly_adults') %>% 
+toplot %>%
+  filter(SD==0.8, vto=='elderly_adults') %>%
   ggplot(aes(time,r, color=as.factor(k_percent), linetype=as.factor(SD)))+
   geom_line(size=1.2)+
   facet_wrap(~age_group)+
   geom_hline(yintercept = 0, linetype='dashed')+
   scale_color_viridis_d()+
   labs(x='Days', y='Growth rate (r)', color='% vaccinated\n per day')+
-  theme_bw() + 
+  theme_bw() +
   theme(axis.text = element_text(size=16, color='black'),
         axis.title = element_text(size=16, color='black'),
         panel.grid.minor = element_blank(),
         panel.spacing = unit(2, "lines"))
 dev.off()
 
-# I_state %>% filter(SD==0,vto=='elderly_adults') %>% 
+# I_state %>% filter(SD==0,vto=='elderly_adults') %>%
 #   ggplot(aes(time,I, color=as.factor(k_percent)))+
 #   geom_line(size=1.2)+
 #   facet_wrap(~age_group)+
 #   geom_hline(yintercept = 0, linetype='dashed')+
 #   scale_color_viridis_d()+
 #   labs(x='Days', y='Growth rate (r)', color='% vaccinated\n per day')+
-#   theme_bw() + 
+#   theme_bw() +
 #   theme(axis.text = element_text(size=16, color='black'),
 #         axis.title = element_text(size=16, color='black'),
 #         panel.grid.minor = element_blank(),
@@ -463,12 +463,4 @@ dir.create(path = as.character(JOB_ID))
 sapply(files, function(z) file.copy(z, as.character(JOB_ID)))
 sapply(files, unlink)
 file.copy(paste(JOB_ID,'_run_summary.csv',sep=''), as.character(JOB_ID))
-
-
-
-
-
-
-
-
 

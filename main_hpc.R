@@ -8,7 +8,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c('Israel', 1, 0.4, 7, 6.4, 1.5)
+# args <- c('Israel', 5, 0.4, 7, 3, 2.1, 1.5, 0.95)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -22,25 +22,22 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
   phi <- 1/as.numeric(args[6])
   eta <- 1/as.numeric(args[7])
   vacc_eff <- as.numeric(args[8])
+  prop_vacc <- as.numeric(args[9])
 }
 
 source('initialize_country.R')
 
 JOB_ID <- Sys.getenv("JOB_ID")
 
-run_summary <- tibble(parameter=c('JOB_ID','country','N','sim_weeks','m','beta','q','1/gamma','1/alpha','1/phi','1/eta','e'),
-                      value=c(JOB_ID,current_country,N,sim_weeks,m,beta,q,1/gamma,1/alpha,1/phi,1/eta,vacc_eff))
-write_csv(run_summary, paste(JOB_ID,'run_summary.csv',sep='_'))
-write_csv(as_tibble(beta_matrix_no_interv), paste(JOB_ID,'beta_matrix_no_interv.csv',sep='_'))
-
-
 source('functions.R')
+
+write_lines('event log', paste(JOB_ID,'log.txt',sep='_'), append = F)
 
 # Model definition --------------------------------------------------------
 # vto is vaccine target order
 # vtp is the current vaccine target population
 
-SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
+full_model <- function (t, x, beta_matrix, k, vto,...){
   S <- x[sindex]
   E <- x[eindex]
   P <- x[pindex]
@@ -67,17 +64,24 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   # Select the vaccine target population
   if(stop_vaccination==F){
     vtp <- vto[[vacc_order]] #vtp := vaccine target population; vto := vaccine targeting order (the strategy)
-    L <- round(S+E+P+A+U)[vtp]
+    L <- round(S+E+P+A+U)[vtp] # number of people that can be vaccinated
     names(L) <- paste('L',vtp,sep='')
-    # print(L)
     
+    switch_vacc_group <- F
     # In case there are not enough people to vaccinate switch to the next target.
     if(any(L<k)){
-      # print(paste(t, 'Switching vaccine target group', vacc_order))
+      write_lines(paste('[',ceiling(t),']', ' any(L<k): Switching vaccine target group: ',names(which(L<k)),'<',k,sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+      switch_vacc_group <- T
+    }
+    # If reached the max proportion of the people willing to vaccinate.
+    if(sum(V[vtp])>=prop_vacc*sum(N_age_groups[vtp])){
+      write_lines(paste('[',ceiling(t),']', ' Switching vaccine target group: reached max prop willing to vaccinate. ',sum(V[vtp]),'>=',ceiling(prop_vacc*sum(N_age_groups[vtp])),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+      switch_vacc_group <- T
+    }
+    if(switch_vacc_group){
       vacc_order <<- vacc_order+1 # Vacc_order is a global parameter
       if(vacc_order>length(vto)){
-        # print('No more people to vaccinate, stopping vaccination')
-        # Sys.sleep(2)
+        write_lines(paste('[',ceiling(t),']', ' No more people to vaccinate, stopping vaccination.',sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
         stop_vaccination <<- T
       } else {
         # print('in here')
@@ -85,6 +89,7 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
       }
     }
   }
+ 
   # Vaccine signal
   mu <- rep(0,9) # Initialize 9 age groups
   if(stop_vaccination==F){
@@ -97,44 +102,28 @@ SEIARUHV_2 <- function (t, x, beta_matrix, k, vto,...){
   for (j in 1:9){
     lambda_j <- 0
     for (l in 1:9){
-      N_l <- N*Table_1$Proportion[l]
+      N_l <- N_age_groups[l]
       lambda_j <- lambda_j + beta_matrix[j,l]*((I[l]+A[l]+P[l])/N_l)*S[j]
     }
     L_j <- S[j]+E[j]+A[j]+P[j]+U[j]
-    # In case there is no one to vaccinate - avoid division by zero
-    if (L_j<1){
-      # cat(paste('L_j=0 for age', j))
-      dsdt[j] <- -lambda_j
-      dedt[j] <- lambda_j-alpha*E[j]
-      dpdt[j] <- alpha*E[j]-phi*P[j]
-      didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
-      dadt[j] <- m[j]*phi*P[j]-gamma*A[j]
-      drdt[j] <- (1-h[j])*eta*I[j]
-      dudt[j] <- gamma*A[j]-mu[j]*U[j]/L_j
-      dhdt[j] <- h[j]*eta*I[j]
-      dvdt[j] <- 0
-    } else {
-      dsdt[j] <- -lambda_j-mu[j]*S[j]/L_j
-      dedt[j] <- lambda_j-alpha*E[j]-mu[j]*E[j]/L_j
-      dpdt[j] <- alpha*E[j]-phi*P[j]-mu[j]*P[j]/L_j
-      didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
-      dadt[j] <- m[j]*phi*P[j]-gamma*A[j]-mu[j]*A[j]/L_j
-      drdt[j] <- (1-h[j])*eta*I[j]
-      dudt[j] <- gamma*A[j]-mu[j]*U[j]/L_j
-      dhdt[j] <- h[j]*eta*I[j]
-      dvdt[j] <- (S[j]+E[j]+P[j]+A[j]+U[j])*mu[j]/L_j
-    }
+    dsdt[j] <- -lambda_j-mu[j]*S[j]/L_j
+    dedt[j] <- lambda_j-alpha*E[j]-mu[j]*E[j]/L_j
+    dpdt[j] <- alpha*E[j]-phi*P[j]-mu[j]*P[j]/L_j
+    didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
+    dadt[j] <- m[j]*phi*P[j]-gamma*A[j]-mu[j]*A[j]/L_j
+    drdt[j] <- (1-h[j])*eta*I[j]
+    dudt[j] <- gamma*A[j]-mu[j]*U[j]/L_j
+    dhdt[j] <- h[j]*eta*I[j]
+    dvdt[j] <- mu[j]
+
     # if(stop_vaccination==F){
     # if (j %in% vtp){
     #   vaccines_by_state <<- bind_rows(vaccines_by_state, tibble(t=t,j=j,S=S[j],E=E[j],A=A[j],U=U[j],V=dvdt[j],L=L_j))
     # }}
   } # End for loop on j
   
-  # cat('\n')
-  
   return(list(c(dsdt,dedt,dpdt,didt,dadt,drdt,dudt,dhdt,dvdt)))
 }
-
 
 
 # Set up to run the simulation --------------------------------------------
@@ -165,18 +154,19 @@ m <- rep(m, 9) # A vector for prob of asymptomatic infections.
 h <- Table_1$h # probability of hospitalization
 
 # Population size and initial size of age groups
-active_infected <- 10000
+active_infected <- 100
 yinit <- initialize_population(N)
 yinit[iindex] <- round(active_infected*Table_1$prop_infected_total)
 N <- sum(yinit)
 age_structure$yinit <- yinit[1:n_groups] # This is used later to calculate proportions
 
+N_age_groups <- N*Table_1$Proportion
 
 times <- seq(1, 7*sim_weeks, by = 1) #  1-day time-increments
 
 # Range of vaccine deployment
-# k_range_percent <- c(0,seq(0.04,0.2,0.04)) # from 0.04% to 0.2% of the population a day
-k_range_percent <- c(0,seq(1,2,length.out = 11))
+k_range_percent <- c(0,seq(0.04,0.2,0.04)) # from 0.04% to 0.2% of the population a day
+# k_range_percent <- c(0,seq(1,2,length.out = 11))
 
 # Range of social distancing strength
 SD_list <- seq(0,1,by=0.1)
@@ -192,7 +182,42 @@ vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
 # Run simulation ----------------------------------------------------
 print('Running simulation')
-curr_country_tbl <- create_country_tbl(k_range,strat_ls)
+write_lines('--- Running simulation ---', paste(JOB_ID,'log.txt',sep='_'), append = T)
+curr_country_tbl <- create_country_tbl(k_range_percent,strat_ls)
 print('Writing results')
+write_lines('--- Writing results ---', paste(JOB_ID,'log.txt',sep='_'), append = T)
 write_csv(curr_country_tbl, paste(JOB_ID,'_results_',current_country,'.csv',sep=''))
 
+
+# Write parameters --------------------------------------------------------
+print('Writing parameters summary')
+run_summary <- data.frame(parameter=c('JOB_ID',
+                                      'country',
+                                      'N',
+                                      'sim_weeks',
+                                      'm',
+                                      'beta',
+                                      'q',
+                                      'gamma',
+                                      'alpha',
+                                      'phi',
+                                      'eta',
+                                      'e',
+                                      'initial_infected',
+                                      'prop_vacc'),
+                          value=c(JOB_ID,
+                                  current_country,
+                                  N,
+                                  sim_weeks,
+                                  m[1],
+                                  beta,
+                                  q,
+                                  gamma,
+                                  alpha,
+                                  phi,
+                                  eta,
+                                  vacc_eff,
+                                  active_infected,
+                                  prop_vacc))
+write_csv(run_summary, paste(JOB_ID,'run_summary.csv',sep='_'))
+write_csv(as_tibble(beta_matrix_no_interv), paste(JOB_ID,'beta_matrix_no_interv.csv',sep='_'))

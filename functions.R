@@ -77,7 +77,7 @@ get_run_res <- function(k_test=0,vtos,SD=0,mtx=beta_matrix_no_interv){
   vacc_order <<- 1; vaccines_by_state <<- NULL; stop_vaccination <<- F
   pop <- as_tibble(ode(y=yinit,
                        times=times,
-                       func=SEIARUHV_2,
+                       func=full_model,
                        beta_matrix=mtx,
                        k=k_test,
                        vto=vtos))
@@ -110,9 +110,9 @@ parse_model_results <- function(x){
 
 
 
-create_country_tbl <- function(k_range,strat_ls){
+create_country_tbl <- function(k_range_percent,strat_ls){
   #returns a table with k as number of vaccines and as percent of population, age group, heff, sd, run_type (the value that goes in the legend), total h effective for all ages per k, and the ages the SD is applied to (from and to)
-  #k_range - series of numbers - if you want a control of k0, 0 needs to be in the list!
+  #k_range_percent - series of numbers representing the % pop vaccinated per day - if you want a control of k0, 0 needs to be in the list!
   #vto list is a list of vtos in the format of the names divided by _, eg c('elderly_adults','juveniles_adults','adults')
   #strat_ls is a list of lists. each internal list has 4 indexes - vto, from, to and SD_ls
   fin_tbl <- NULL
@@ -120,11 +120,13 @@ create_country_tbl <- function(k_range,strat_ls){
   for (strat in strat_ls){
     vto <- age_group_name_to_ls(strat$vto,'list')
     print(strat)
+    write_lines(paste('--> strategy: ',strat,sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
     for (SD in strat$SD_ls){
       to <- age_group_name_to_ls(strat$to,'vector')
       from <- age_group_name_to_ls(strat$from,'vector')
       m <- sd_specific(beta_matrix_no_interv,from,to,SD)
       for (k_percent in k_range_percent){
+        write_lines(paste('|----> k_percent: ',k_percent,sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
         k <- round(k_percent/100*N) # Calculate number of vaccines per day (kappa)
         k_res <- NULL
         k_res <- get_run_res(k_test=k, vtos=vto, SD=0, mtx=m) # The SD here refers to the external forcing function. the real SD is given directly in the contact matrix
