@@ -23,6 +23,7 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
   eta <- 1/as.numeric(args[7])
   vacc_eff <- as.numeric(args[8])
   prop_vacc <- as.numeric(args[9])
+  beta <- as.numeric(args[10])
 }
 
 source('initialize_country.R')
@@ -31,7 +32,14 @@ JOB_ID <- Sys.getenv("JOB_ID")
 
 source('functions.R')
 
-write_lines('event log', paste(JOB_ID,'log.txt',sep='_'), append = F)
+write_lines('START EVENT LOG', paste(JOB_ID,'log.txt',sep='_'), append = F)
+
+# beta depends on the probability of successful infection q and encounter rate, c: beta=qc.
+# Spread the effect of beta across the contact matrix:
+q <- beta/mean(contact_matrix_sym)
+beta_matrix_no_interv <- q*contact_matrix_sym
+diag(beta_matrix_no_interv) <- diag(beta_matrix_no_interv)/2 # Need to halve the diaginal to avoid double contacts within the same age group
+
 
 # Model definition --------------------------------------------------------
 # vto is vaccine target order
@@ -115,7 +123,18 @@ full_model <- function (t, x, beta_matrix, k, vto,...){
     dudt[j] <- gamma*A[j]-mu[j]*U[j]/L_j
     dhdt[j] <- h[j]*eta*I[j]
     dvdt[j] <- mu[j]
-
+    
+    # Alternative: Define mu as per-capita rate:
+    # dsdt[j] <- -lambda_j-mu[j]*S[j]
+    # dedt[j] <- lambda_j-alpha*E[j]-mu[j]*E[j]
+    # dpdt[j] <- alpha*E[j]-phi*P[j]-mu[j]*P[j]
+    # didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
+    # dadt[j] <- m[j]*phi*P[j]-gamma*A[j]-mu[j]*A[j]
+    # drdt[j] <- (1-h[j])*eta*I[j]
+    # dudt[j] <- gamma*A[j]-mu[j]*U[j]
+    # dhdt[j] <- h[j]*eta*I[j]
+    # dvdt[j] <- mu[j]/(S[j]+E[j]+A[j]+P[j]+U[j])
+    
     # if(stop_vaccination==F){
     # if (j %in% vtp){
     #   vaccines_by_state <<- bind_rows(vaccines_by_state, tibble(t=t,j=j,S=S[j],E=E[j],A=A[j],U=U[j],V=dvdt[j],L=L_j))
