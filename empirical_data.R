@@ -1,6 +1,78 @@
 library(tidyverse)
 library(readxl)
 library(lubridate)
+library(R0)
+
+
+# Estimate beta from fitting ----------------------------------------------
+
+# Define functions
+covid19_country <- function(the_country){
+  x <- covid19%>%
+    filter(country==the_country) %>%
+    mutate(running_day=row_number())
+  return(x)
+}
+
+R0_country <- function(the_country,...){
+  # Estimate R0 from data
+  mGT<-generation.time("gamma", c(3, 1.5))
+  x <- covid19_country(the_country)
+  y <- x$cases
+  names(y) <- x$date
+  R0 <- est.R0.EG(y, mGT, ...)
+  R0
+}
+# Get data
+setwd('~/GitHub/COVID-19/csse_covid_19_data/csse_covid_19_time_series/')
+covid19 <- read_csv('time_series_covid19_confirmed_global.csv')
+covid19 %<>%
+  dplyr::select(-`Province/State`, -Lat, -Long) %>%
+  rename(country=`Country/Region`) %>%
+  gather(key=d, value, -country) %>%
+  group_by(country, d) %>%
+  summarise(cases=sum(value)) %>%
+  separate(d, into=c('month','day','year')) %>%
+  mutate(date=as_date(paste(year,month,day,sep='-'))) %>%
+  arrange(country,date)
+
+early_period_limit <- 35
+ildata <- covid19_country('Israel') %>% filter(cases>0) %>% mutate(running_day=row_number())
+ggplot(ildata, aes(x=running_day, y=cases))+
+  geom_point()+geom_line()+
+  geom_vline(xintercept = early_period_limit, linetype='dashed')+
+  theme_bw()
+
+# Estimate beta using R0
+mGT<-generation.time("gamma", c(3, 1.5))
+y <- ildata$cases
+names(y) <- ildata$date
+R0 <- est.R0.EG(y, mGT, begin=1, end=early_period_limit)
+R0
+beta_est_R0 <- R0$R*0.09 # beta=R0*gamma
+
+# Estimate beta using a linear model
+
+ildata_early <- ildata %>% filter(running_day<=early_period_limit)
+model_lm <- lm(log(cases) ~ running_day, data=ildata_early) 
+s <- summary(model_lm)
+beta_gamma_coef <- coef(model_lm)[2]
+
+# The coefficient is actually beta-gamma so calculate beta:
+beta <- beta_gamma_coef+gamma
+
+# Check the fit of the model by plottign predicted values based on model estimation
+ildata_early$pred_lm <- exp(predict(model_lm))
+ggplot(ildata_early, aes(y=cases, x=running_day))+
+  geom_point()+geom_line()+
+  geom_line(aes(x = running_day, y = pred_lm), color='blue', size=1.3)+
+  theme_bw()
+
+
+
+# Vaccination data --------------------------------------------------------
+
+
 
 setwd('~/GitHub/ecomplab/COVID19_vaccine_model/Data/')
 vac <- read_excel('vaccination_percent.xlsx')
