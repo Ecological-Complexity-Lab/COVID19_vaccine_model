@@ -8,7 +8,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c('Israel', 5, 0.4, 7, 3, 2.1, 1.5, 1, 1, 0.24)
+# args <- c('Israel', 15, 0.4, 7, 3, 2.1, 1.5, 1, 1, 0.24)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -82,6 +82,52 @@ diag(beta_matrix_no_interv) <- diag(beta_matrix_no_interv)/2 # Need to halve the
 # 
 # # print(t)
 
+
+
+# if(stop_vaccination==F){
+#   vtp <- vto[[vacc_order]] #vtp := vaccine target population; vto := vaccine targeting order (the strategy)
+#   
+#   switch_vacc_group <- F
+#   # If reached the max proportion of the people willing to vaccinate.
+#   write_lines(paste('[',ceiling(t),']', 'sum(V[vtp]): ',ceiling(sum(V[vtp])),' max_vacc: ',ceiling(prop_vacc*sum(N_age_groups[vtp])),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+#   
+#   # If reached limit of people that can are willing to vaccinate
+#   if(sum(V[vtp])>=prop_vacc*sum(N_age_groups[vtp])){
+#     write_lines(paste('[',ceiling(t),']', ' Switching vaccine target group: reached max prop willing to vaccinate. ',ceiling(sum(V[vtp])),'>=',ceiling(prop_vacc*sum(N_age_groups[vtp])),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+#     switch_vacc_group <- T
+#   }
+#   
+#   L <- round(S+E+P+A+U)[vtp] # number of people that can be vaccinated
+#   names(L) <- paste('L',vtp,sep='')
+#   # print(c(S,E,P,A,U))
+#   write_lines(paste('[',ceiling(t),']', 'L: ',ceiling(sum(L)),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+#   # write_lines(paste('[',ceiling(t),']', 'L: ',L, sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+#   # The total number of people to get the vaccine is smaller than the daily deployment
+#   if(sum(L)<=k){
+#     write_lines(paste('[',ceiling(t),']', ' sum(L)<=k, changing k and redistributing vaccines. ',sum(L),'<=',k,sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+#     # mu[vtp] <- L
+#     switch_vacc_group <- T
+#   }
+#   
+#   # If switching to next vaccination target
+#   if(switch_vacc_group){
+#     vacc_order <<- vacc_order+1 # Vacc_order is a global parameter
+#     if(vacc_order>length(vto)){
+#       write_lines(paste('[',ceiling(t),']', ' No more people to vaccinate, stopping vaccination campaign.',sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+#       stop_vaccination <<- T
+#     } else {
+#       vtp <- vto[[vacc_order]]
+#     }
+#   }
+# }
+# 
+# if(stop_vaccination==F){
+#   mu[vtp] <- vaccine_forcing(t)*k/length(vtp) # Divide the daily vaccines between the groups
+# }
+# 
+
+
+
 full_model <- function (t, x, beta_matrix, k, vto,...){
   S <- x[sindex]
   E <- x[eindex]
@@ -108,28 +154,31 @@ full_model <- function (t, x, beta_matrix, k, vto,...){
   
   # Select the vaccine target population
   
-  mu <- rep(0,9) # Initialize 9 age groups
-  
   if(stop_vaccination==F){
     vtp <- vto[[vacc_order]] #vtp := vaccine target population; vto := vaccine targeting order (the strategy)
     
     switch_vacc_group <- F
     # If reached the max proportion of the people willing to vaccinate.
+    write_lines(paste('[',ceiling(t),']', 'sum(V[vtp]): ',ceiling(sum(V[vtp])),' max_vacc: ',ceiling(prop_vacc*sum(N_age_groups[vtp])),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+    
+    # If reached limit of people that can are willing to vaccinate
     if(sum(V[vtp])>=prop_vacc*sum(N_age_groups[vtp])){
-      write_lines(paste('[',ceiling(t),']', ' Switching vaccine target group: reached max prop willing to vaccinate. ',sum(V[vtp]),'>=',ceiling(prop_vacc*sum(N_age_groups[vtp])),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+      write_lines(paste('[',ceiling(t),']', ' Switching vaccine target group: reached max prop willing to vaccinate. ',ceiling(sum(V[vtp])),'>=',ceiling(prop_vacc*sum(N_age_groups[vtp])),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
       switch_vacc_group <- T
-    } else {
-      L <- round(S+E+P+A+U)[vtp] # number of people that can be vaccinated
-      names(L) <- paste('L',vtp,sep='')
-      print(L)
-      if(sum(L)<=k){
-        write_lines(paste('[',ceiling(t),']', ' sum(L)<=k, changing k and redistributing vaccines. ',sum(L),'<=',k,sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
-        mu[vtp] <- L
-        switch_vacc_group <- T
-      } else {
-        mu[vtp] <- vaccine_forcing(t)*k/length(vtp) # Divide the daily vaccines between the groups
-      }
     }
+    
+    L <- round(S+E+P+A+U)[vtp] # number of people that can be vaccinated
+    names(L) <- paste('L',vtp,sep='')
+    # print(c(S,E,P,A,U))
+    write_lines(paste('[',ceiling(t),']', 'L: ',ceiling(sum(L)),sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+    # write_lines(paste('[',ceiling(t),']', 'L: ',L, sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+    # The total number of people to get the vaccine is smaller than the daily deployment
+    if(sum(L)<=k){
+      write_lines(paste('[',ceiling(t),']', ' sum(L)<=k, changing k and redistributing vaccines. ',sum(L),'<=',k,sep=''), paste(JOB_ID,'log.txt',sep='_'), append = T)
+      # mu[vtp] <- L
+      switch_vacc_group <- T
+    }
+    
     # If switching to next vaccination target
     if(switch_vacc_group){
       vacc_order <<- vacc_order+1 # Vacc_order is a global parameter
@@ -141,7 +190,15 @@ full_model <- function (t, x, beta_matrix, k, vto,...){
       }
     }
   }
-
+  
+  if(stop_vaccination==F){
+    mu[vtp] <- vaccine_forcing(t)*k/length(vtp) # Divide the daily vaccines between the groups
+  }
+  
+  
+  
+  
+  
   dsdt<-dedt<-dpdt<-didt<-dadt<-drdt<-dudt<-dhdt<-dvdt <- NULL
   for (j in 1:9){
     lambda_j <- 0
@@ -171,10 +228,10 @@ full_model <- function (t, x, beta_matrix, k, vto,...){
     # dhdt[j] <- h[j]*eta*I[j]
     # dvdt[j] <- mu[j]/(S[j]+E[j]+A[j]+P[j]+U[j])
     
-    # if(stop_vaccination==F){
-    # if (j %in% vtp){
-    #   vaccines_by_state <<- bind_rows(vaccines_by_state, tibble(t=t,j=j,S=S[j],E=E[j],A=A[j],U=U[j],V=dvdt[j],L=L_j))
-    # }}
+    if(stop_vaccination==F){
+    if (j %in% vtp){
+      vaccines_by_state <<- bind_rows(vaccines_by_state, tibble(t=t,j=j,S=S[j],E=E[j],P=P[j],A=A[j],U=U[j],V=dvdt[j],L=L_j))
+    }}
   } # End for loop on j
   
   return(list(c(dsdt,dedt,dpdt,didt,dadt,drdt,dudt,dhdt,dvdt)))
@@ -231,8 +288,8 @@ vto_ea_SDstrat_allall <- list(vto='elderly_adults',SD_ls=SD_list,from=all_ages,t
 vto_ae_SDstrat_allall <- list(vto='adults_elderly',SD_ls=SD_list,from=all_ages,to=all_ages)
 vto_ea_SDstrat_aall <- list(vto='elderly_adults',SD_ls=SD_list,from='adults',to=all_ages)
 vto_ae_SDstrat_eall <- list(vto='adults_elderly',SD_ls=SD_list,from='elderly',to=all_ages)
-strat_ls <- list(vto_ea_SDstrat_allall,vto_ae_SDstrat_allall,vto_ae_SDstrat_eall,vto_ea_SDstrat_aall)
-
+strat_ls <- list(vto_ae_SDstrat_allall,vto_ae_SDstrat_eall,vto_ea_SDstrat_aall)
+# strat_ls <- list(vto_ea_SDstrat_allall)
 vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
 # Run simulation ----------------------------------------------------
