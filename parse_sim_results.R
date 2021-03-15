@@ -1,3 +1,6 @@
+# Add 2 more targeted SD scenarios
+# Analyze total hospitalizations.
+
 #! /gpfs0/shai/projects/R4/R-4.0.3/bin/Rscript
 .libPaths("/gpfs0/shai/projects/R4/R-4.0.3/lib64/R/library")
 print(sessionInfo())
@@ -6,7 +9,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c(7735187, 30)
+# args <- c(7732503, 30)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -456,17 +459,17 @@ dev.off()
 
 
 # Proportion of hospitalizations ------------------------------------------
-country_tbl %>% distinct(from)
+# country_tbl %>% distinct(from)
 
 N_per_age <- tibble(age_group=unique(country_tbl$age_group), N_j=N_age_groups)
 H_vaccine <- 
   country_tbl %>% 
   filter(state=='H') %>% 
-  filter(from=='juveniles_adults_elderly') %>% 
+  # filter(from=='juveniles_adults_elderly') %>% 
   filter(time==max(times)) %>%  # Number of cases at the end of the simulation
   mutate(k_percent=as.factor(k_percent)) %>% 
   left_join(N_per_age) %>% 
-  group_by(vto, age_group, N_j, SD, k_percent) %>% 
+  group_by(vto, from, age_group, N_j, SD, k_percent) %>% 
   summarise(tot_age_group=sum(cases),
             prop_age_group=sum(cases)/N_j) %>% 
   ungroup() %>% 
@@ -474,10 +477,10 @@ H_vaccine <-
 
 # Plot for all ages
 H_vaccine %>% 
-  group_by(vto,SD,k_percent) %>% 
+  group_by(vto,from,SD,k_percent) %>% 
   summarise(tot_cases=sum(tot_age_group)) %>% 
   ggplot(aes(x=SD, y=tot_cases/N, color=k_percent))+
-  facet_wrap(~vto, labeller = labeller(vto=c(elderly_adults='Elderly then adults', adults_elderly='Adults then elderly')))+
+  facet_grid(from~vto, labeller = labeller(vto=c(elderly_adults='Elderly then adults', adults_elderly='Adults then elderly')))+
   geom_line(size=1.5)+
   scale_x_continuous(breaks = seq(0,1,0.2)) + 
   scale_color_viridis_d()+
@@ -486,12 +489,12 @@ H_vaccine %>%
   theme(axis.text = element_text(size=16, color='black'),
         axis.title = element_text(size=16, color='black'),
         panel.spacing = unit(2, "lines"))
+
 # Plot per age group
 H_vaccine %>% 
-  # group_by(vto,age_group,SD,k_percent) %>% 
-  # summarise(tot_cases=sum(tot_age_group)) %>% 
+  # filter(from=='adults') %>% 
   ggplot(aes(x=SD, y=prop_age_group, color=k_percent))+
-  facet_grid(vto~age_group, labeller = labeller(vto=c(elderly_adults='Elderly then adults', adults_elderly='Adults then elderly')))+
+  facet_grid(vto+from~age_group, labeller = labeller(vto=c(elderly_adults='Elderly then adults', adults_elderly='Adults then elderly')))+
   geom_line(size=1.5)+
   scale_x_continuous(breaks = seq(0,1,0.2)) + 
   scale_color_viridis_d()+
