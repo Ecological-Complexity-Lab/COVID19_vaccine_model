@@ -211,9 +211,6 @@ strat_ls <- list(vto_ea_SDstrat_allall,vto_ae_SDstrat_allall,vto_ae_SDstrat_eall
 
 vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
-strat_ls <- list(vto_ea_SDstrat_eall)
-
-
 # k_range_percent <- c(0.12)
 # strat_ls <- list(list(vto='elderly_adults',SD_ls=0,from=all_ages,to=all_ages))
 
