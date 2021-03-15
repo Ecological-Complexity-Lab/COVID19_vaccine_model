@@ -6,7 +6,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c(4192476, 12)
+# args <- c(7735187, 30)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -18,8 +18,8 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
 
 # Get parameters of that run
 run_summary <- read.csv(paste(JOB_ID,'run_summary.csv',sep='_'))
-current_country <- run_summary[2,2]
-for (i in 3:nrow(run_summary)){
+current_country <- run_summary[run_summary$parameter=='country',2]
+for (i in 5:nrow(run_summary)){
   assign(run_summary[i,1], as.numeric(run_summary[i,2]))
 }
   
@@ -453,6 +453,53 @@ dev.off()
 #         axis.title = element_text(size=16, color='black'),
 #         panel.grid.minor = element_blank(),
 #         panel.spacing = unit(2, "lines"))
+
+
+# Proportion of hospitalizations ------------------------------------------
+country_tbl %>% distinct(from)
+
+N_per_age <- tibble(age_group=unique(country_tbl$age_group), N_j=N_age_groups)
+H_vaccine <- 
+  country_tbl %>% 
+  filter(state=='H') %>% 
+  filter(from=='juveniles_adults_elderly') %>% 
+  filter(time==max(times)) %>%  # Number of cases at the end of the simulation
+  mutate(k_percent=as.factor(k_percent)) %>% 
+  left_join(N_per_age) %>% 
+  group_by(vto, age_group, N_j, SD, k_percent) %>% 
+  summarise(tot_age_group=sum(cases),
+            prop_age_group=sum(cases)/N_j) %>% 
+  ungroup() %>% 
+  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly')))
+
+# Plot for all ages
+H_vaccine %>% 
+  group_by(vto,SD,k_percent) %>% 
+  summarise(tot_cases=sum(tot_age_group)) %>% 
+  ggplot(aes(x=SD, y=tot_cases/N, color=k_percent))+
+  facet_wrap(~vto, labeller = labeller(vto=c(elderly_adults='Elderly then adults', adults_elderly='Adults then elderly')))+
+  geom_line(size=1.5)+
+  scale_x_continuous(breaks = seq(0,1,0.2)) + 
+  scale_color_viridis_d()+
+  labs(x='% reduction in contact rates', y='% population hospitalized', color='% vaccinated\n per day')+
+  theme_bw() + 
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.spacing = unit(2, "lines"))
+# Plot per age group
+H_vaccine %>% 
+  # group_by(vto,age_group,SD,k_percent) %>% 
+  # summarise(tot_cases=sum(tot_age_group)) %>% 
+  ggplot(aes(x=SD, y=prop_age_group, color=k_percent))+
+  facet_grid(vto~age_group, labeller = labeller(vto=c(elderly_adults='Elderly then adults', adults_elderly='Adults then elderly')))+
+  geom_line(size=1.5)+
+  scale_x_continuous(breaks = seq(0,1,0.2)) + 
+  scale_color_viridis_d()+
+  labs(x='% reduction in contact rates', y='Total hospitalizations', color='% vaccinated\n per day')+
+  theme_bw() + 
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.spacing = unit(2, "lines"))
 
 
 # Arrange in a folder -----------------------------------------------------

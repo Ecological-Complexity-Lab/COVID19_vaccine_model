@@ -8,7 +8,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c('Israel', 30, 0.4, 7, 3, 2.1, 1.5, 1, 1, 0.24); JOB_ID <- 170; max_weeks=15
+# args <- c('Israel', 30, 0.4, 7, 3, 2.1, 1.5, 1, 1, 0.24, 'this is a comment'); JOB_ID <- 170; max_weeks=15
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -24,6 +24,7 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
   vacc_eff <- as.numeric(args[8])
   prop_vacc <- as.numeric(args[9])
   beta <- as.numeric(args[10])
+  comment <- args[11]
 }
 
 source('initialize_country.R')
@@ -207,6 +208,10 @@ strat_ls <- list(vto_ea_SDstrat_allall,vto_ae_SDstrat_allall,vto_ae_SDstrat_eall
 
 vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
+vto_ea_SDstrat_eall <- list(vto='elderly_adults',SD_ls=SD_list,from='elderly',to=all_ages)
+strat_ls <- list(vto_ea_SDstrat_eall)
+
+
 # k_range_percent <- c(0.12)
 # strat_ls <- list(list(vto='elderly_adults',SD_ls=0,from=all_ages,to=all_ages))
 
@@ -223,6 +228,7 @@ write_csv(curr_country_tbl, paste(JOB_ID,'_results_',current_country,'.csv',sep=
 print('Writing parameters summary')
 run_summary <- data.frame(parameter=c('JOB_ID',
                                       'JOB_NAME',
+                                      'comment',
                                       'country',
                                       'N',
                                       'sim_weeks',
@@ -238,6 +244,7 @@ run_summary <- data.frame(parameter=c('JOB_ID',
                                       'prop_vacc'),
                           value=c(JOB_ID,
                                   JOB_NAME,
+                                  comment,
                                   current_country,
                                   N,
                                   sim_weeks,
