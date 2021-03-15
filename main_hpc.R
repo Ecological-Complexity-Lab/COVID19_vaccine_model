@@ -22,8 +22,8 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
   phi <- 1/as.numeric(args[6])
   eta <- 1/as.numeric(args[7])
   vacc_eff <- as.numeric(args[8])
-  prop_vacc <- as.numeric(args[9])
-  beta <- as.numeric(args[10])
+  beta <- as.numeric(args[9])
+  prop_vacc <- as.numeric(args[10])
   comment <- args[11]
 }
 
@@ -204,11 +204,13 @@ vto_ea_SDstrat_allall <- list(vto='elderly_adults',SD_ls=SD_list,from=all_ages,t
 vto_ae_SDstrat_allall <- list(vto='adults_elderly',SD_ls=SD_list,from=all_ages,to=all_ages)
 vto_ea_SDstrat_aall <- list(vto='elderly_adults',SD_ls=SD_list,from='adults',to=all_ages)
 vto_ae_SDstrat_eall <- list(vto='adults_elderly',SD_ls=SD_list,from='elderly',to=all_ages)
-strat_ls <- list(vto_ea_SDstrat_allall,vto_ae_SDstrat_allall,vto_ae_SDstrat_eall,vto_ea_SDstrat_aall)
+vto_ea_SDstrat_eall <- list(vto='elderly_adults',SD_ls=SD_list,from='elderly',to=all_ages)
+vto_ae_SDstrat_aall <- list(vto='adults_elderly',SD_ls=SD_list,from='adults',to=all_ages)
+
+strat_ls <- list(vto_ea_SDstrat_allall,vto_ae_SDstrat_allall,vto_ae_SDstrat_eall,vto_ea_SDstrat_aall,vto_ae_SDstrat_aall)
 
 vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
-vto_ea_SDstrat_eall <- list(vto='elderly_adults',SD_ls=SD_list,from='elderly',to=all_ages)
 strat_ls <- list(vto_ea_SDstrat_eall)
 
 
