@@ -29,6 +29,7 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
 source('initialize_country.R')
 
 JOB_ID <- Sys.getenv("JOB_ID")
+JOB_NAME <- Sys.getenv("JOB_NAME")
 
 source('functions.R')
 
@@ -129,31 +130,22 @@ full_model <- function (t, x, beta_matrix, k, vto,...){
       N_l <- N_age_groups[l]
       lambda_j <- lambda_j + beta_matrix[j,l]*((I[l]+A[l]+P[l])/N_l)*S[j]
     }
-    L_j <- S[j]+E[j]+A[j]+P[j]+U[j]
-    dsdt[j] <- -lambda_j-mu[j]*S[j]/L_j
-    dedt[j] <- lambda_j-alpha*E[j]-mu[j]*E[j]/L_j
-    dpdt[j] <- alpha*E[j]-phi*P[j]-mu[j]*P[j]/L_j
+    # L_j <- S[j]+E[j]+A[j]+P[j]+U[j]
+    mu[j] <- mu[j]/(S[j]+E[j]+A[j]+P[j]+U[j]) # Define mu as per-capita vaccination rate
+    
+    dsdt[j] <- -lambda_j-mu[j]*S[j]
+    dedt[j] <- lambda_j-alpha*E[j]-mu[j]*E[j]
+    dpdt[j] <- alpha*E[j]-phi*P[j]-mu[j]*P[j]
     didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
-    dadt[j] <- m[j]*phi*P[j]-gamma*A[j]-mu[j]*A[j]/L_j
+    dadt[j] <- m[j]*phi*P[j]-gamma*A[j]-mu[j]*A[j]
     drdt[j] <- (1-h[j])*eta*I[j]
-    dudt[j] <- gamma*A[j]-mu[j]*U[j]/L_j
+    dudt[j] <- gamma*A[j]-mu[j]*U[j]
     dhdt[j] <- h[j]*eta*I[j]
-    dvdt[j] <- mu[j]
-
-    # Alternative: Define mu as per-capita rate:
-    # dsdt[j] <- -lambda_j-mu[j]*S[j]
-    # dedt[j] <- lambda_j-alpha*E[j]-mu[j]*E[j]
-    # dpdt[j] <- alpha*E[j]-phi*P[j]-mu[j]*P[j]
-    # didt[j] <- (1-m[j])*phi*P[j]-eta*I[j]
-    # dadt[j] <- m[j]*phi*P[j]-gamma*A[j]-mu[j]*A[j]
-    # drdt[j] <- (1-h[j])*eta*I[j]
-    # dudt[j] <- gamma*A[j]-mu[j]*U[j]
-    # dhdt[j] <- h[j]*eta*I[j]
-    # dvdt[j] <- mu[j]/(S[j]+E[j]+A[j]+P[j]+U[j])
+    dvdt[j] <- mu[j]*(S[j]+E[j]+A[j]+P[j]+U[j])
     
     # if(stop_vaccination==F){
     # if (j %in% vtp){
-    #   vaccines_by_state <<- bind_rows(vaccines_by_state, tibble(t=t,j=j,S=S[j],E=E[j],P=P[j],A=A[j],U=U[j],V=dvdt[j],L=L_j))
+    # vaccines_by_state <<- bind_rows(vaccines_by_state, tibble(t=t,j=j,S=S[j],E=E[j],P=P[j],A=A[j],U=U[j],V=V[j],L=L_j, mu=mu[j]))
     # }}
   } # End for loop on j
   
@@ -230,6 +222,7 @@ write_csv(curr_country_tbl, paste(JOB_ID,'_results_',current_country,'.csv',sep=
 # Write parameters --------------------------------------------------------
 print('Writing parameters summary')
 run_summary <- data.frame(parameter=c('JOB_ID',
+                                      'JOB_NAME',
                                       'country',
                                       'N',
                                       'sim_weeks',
@@ -244,6 +237,7 @@ run_summary <- data.frame(parameter=c('JOB_ID',
                                       'initial_infected',
                                       'prop_vacc'),
                           value=c(JOB_ID,
+                                  JOB_NAME,
                                   current_country,
                                   N,
                                   sim_weeks,
