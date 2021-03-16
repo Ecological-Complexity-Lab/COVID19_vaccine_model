@@ -207,7 +207,12 @@ vto_ae_SDstrat_eall <- list(vto='adults_elderly',SD_ls=SD_list,from='elderly',to
 vto_ea_SDstrat_eall <- list(vto='elderly_adults',SD_ls=SD_list,from='elderly',to=all_ages)
 vto_ae_SDstrat_aall <- list(vto='adults_elderly',SD_ls=SD_list,from='adults',to=all_ages)
 
-strat_ls <- list(vto_ea_SDstrat_allall,vto_ae_SDstrat_allall,vto_ae_SDstrat_eall,vto_ea_SDstrat_aall,vto_ae_SDstrat_aall)
+strat_ls <- list(vto_ea_SDstrat_allall,
+                 vto_ae_SDstrat_allall,
+                 vto_ea_SDstrat_aall,
+                 vto_ae_SDstrat_eall,
+                 vto_ea_SDstrat_eall,
+                 vto_ae_SDstrat_aall)
 
 vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
