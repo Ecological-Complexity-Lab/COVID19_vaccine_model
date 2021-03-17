@@ -49,7 +49,7 @@ y <- ildata$cases
 names(y) <- ildata$date
 R0 <- est.R0.EG(y, mGT, begin=1, end=early_period_limit)
 R0
-beta_est_R0 <- R0$R*0.09 # beta=R0*gamma
+beta_est_R0 <- R0$R*(1/7) # beta=R0*gamma
 
 # Estimate beta using a linear model
 
