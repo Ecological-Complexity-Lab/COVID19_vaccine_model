@@ -14,18 +14,27 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
 } else {
   args <- commandArgs(trailingOnly=TRUE)
-  current_country <- args[1]
-  sim_weeks <- as.numeric(args[2])
-  m <- as.numeric(args[3])
-  gamma <- 1/as.numeric(args[4])
-  alpha=1/as.numeric(args[5])
-  phi <- 1/as.numeric(args[6])
-  eta <- 1/as.numeric(args[7])
-  vacc_eff <- as.numeric(args[8])
-  beta <- as.numeric(args[9])
-  prop_vacc <- as.numeric(args[10])
-  comment <- args[11]
+  exp_id <- args[1]
 }
+
+experiments <- read_csv('experiments.csv')
+current_country <- experiments[exp_id,2]
+sim_weeks <- as.numeric(experiments[exp_id,3])
+m <- as.numeric(experiments[exp_id,4])
+gamma <- 1/as.numeric(experiments[exp_id,5])
+alpha=1/as.numeric(experiments[exp_id,6])
+phi <- 1/as.numeric(experiments[exp_id,7])
+eta <- 1/as.numeric(experiments[exp_id,8])
+vacc_eff <- as.numeric(experiments[exp_id,9])
+beta <- as.numeric(experiments[exp_id,10])
+prop_vacc <- as.numeric(experiments[exp_id,11])
+b_p <- as.numeric(experiments[exp_id,12])
+active_infected <- as.numeric(experiments[exp_id,13])
+k_min <- as.numeric(experiments[exp_id,14])
+k_max <- as.numeric(experiments[exp_id,15])
+comment <- experiments[exp_id,16]
+
+
 
 source('initialize_country.R')
 
@@ -129,7 +138,7 @@ full_model <- function (t, x, beta_matrix, k, vto,...){
     lambda_j <- 0
     for (l in 1:9){
       N_l <- N_age_groups[l]
-      lambda_j <- lambda_j + beta_matrix[j,l]*((I[l]+A[l]+P[l])/N_l)*S[j]
+      lambda_j <- lambda_j + beta_matrix[j,l]*((I[l]+b_p*A[l]+b_p*P[l])/N_l)*S[j]
     }
     # L_j <- S[j]+E[j]+A[j]+P[j]+U[j]
     mu[j] <- mu[j]/(S[j]+E[j]+A[j]+P[j]+U[j]) # Define mu as per-capita vaccination rate
@@ -182,7 +191,7 @@ m <- rep(m, 9) # A vector for prob of asymptomatic infections.
 h <- Table_1$h # probability of hospitalization
 
 # Population size and initial size of age groups
-active_infected <- 100
+# active_infected <- 100 # Taken from experiments.csv
 yinit <- initialize_population(N)
 yinit[iindex] <- round(active_infected*Table_1$prop_infected_total)
 N <- sum(yinit)
@@ -193,8 +202,8 @@ N_age_groups <- N*Table_1$Proportion
 times <- seq(1, 7*sim_weeks, by = 1) #  1-day time-increments
 
 # Range of vaccine deployment
-k_range_percent <- c(0,seq(0.04,0.2,0.04)) # from 0.04% to 0.2% of the population a day
-# k_range_percent <- c(0,seq(1,2,length.out = 11))
+# k_range_percent <- c(0,seq(0.04,0.2,0.04)) # from 0.04% to 0.2% of the population a day
+k_range_percent <- c(0,seq(k_min,k_max,length.out = 5)) # from 0.04% to 0.2% of the population a day
 
 # Range of social distancing strength
 SD_list <- seq(0,1,by=0.1)
@@ -231,7 +240,7 @@ write_csv(curr_country_tbl, paste(JOB_ID,'_results_',current_country,'.csv',sep=
 # Write parameters --------------------------------------------------------
 print('Writing parameters summary')
 run_summary <- data.frame(parameter=c('JOB_ID',
-                                      'JOB_NAME',
+                                      'exp_id',
                                       'comment',
                                       'country',
                                       'N',
