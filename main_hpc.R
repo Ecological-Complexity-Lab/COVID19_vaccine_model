@@ -8,42 +8,35 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c('Israel', 30, 0.4, 7, 3, 2.1, 1.5, 1, 1, 0.24, 'this is a comment'); JOB_ID <- 170; max_weeks=15
-
+# args <- 0; JOB_ID <- 270; max_weeks=15
+JOB_ID <- Sys.getenv("JOB_ID")
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
 } else {
   args <- commandArgs(trailingOnly=TRUE)
-  exp_id <- args[1]
+  e_id <- as.numeric(args[1])
 }
 
-experiments <- read_csv('experiments.csv')
-current_country <- experiments[exp_id,2]
-sim_weeks <- as.numeric(experiments[exp_id,3])
-m <- as.numeric(experiments[exp_id,4])
-gamma <- 1/as.numeric(experiments[exp_id,5])
-alpha=1/as.numeric(experiments[exp_id,6])
-phi <- 1/as.numeric(experiments[exp_id,7])
-eta <- 1/as.numeric(experiments[exp_id,8])
-vacc_eff <- as.numeric(experiments[exp_id,9])
-beta <- as.numeric(experiments[exp_id,10])
-prop_vacc <- as.numeric(experiments[exp_id,11])
-b_p <- as.numeric(experiments[exp_id,12])
-active_infected <- as.numeric(experiments[exp_id,13])
-k_min <- as.numeric(experiments[exp_id,14])
-k_max <- as.numeric(experiments[exp_id,15])
-comment <- experiments[exp_id,16]
+write_lines(paste0('START EVENT LOG -- exp id: ',e_id), paste(JOB_ID,'log.txt',sep='_'), append = F)
 
+experiments <- read_csv('experiments.csv')
+experiment <- as.data.frame(subset(experiments, exp_id==e_id))
+for (i in 2:ncol(experiment)){
+  v <- names(experiment)[i]
+  print(v)
+  if(is.numeric(experiment[,i])){
+    assign(v, as.numeric(experiment[,i]))
+  } else {
+    assign(v, experiment[,i])
+  }
+  write_lines(paste(v,experiment[,i],sep=': '), paste(JOB_ID,'log.txt',sep='_'), append = T)
+}
+write_lines('======================================', paste(JOB_ID,'log.txt',sep='_'), append = T)
 
 
 source('initialize_country.R')
-
-JOB_ID <- Sys.getenv("JOB_ID")
-JOB_NAME <- Sys.getenv("JOB_NAME")
-
 source('functions.R')
 
-write_lines('START EVENT LOG', paste(JOB_ID,'log.txt',sep='_'), append = F)
 
 # beta depends on the probability of successful infection q and encounter rate, c: beta=qc.
 # Spread the effect of beta across the contact matrix:
@@ -239,37 +232,7 @@ write_csv(curr_country_tbl, paste(JOB_ID,'_results_',current_country,'.csv',sep=
 
 # Write parameters --------------------------------------------------------
 print('Writing parameters summary')
-run_summary <- data.frame(parameter=c('JOB_ID',
-                                      'exp_id',
-                                      'comment',
-                                      'country',
-                                      'N',
-                                      'sim_weeks',
-                                      'm',
-                                      'beta',
-                                      'q',
-                                      'gamma',
-                                      'alpha',
-                                      'phi',
-                                      'eta',
-                                      'e',
-                                      'initial_infected',
-                                      'prop_vacc'),
-                          value=c(JOB_ID,
-                                  JOB_NAME,
-                                  comment,
-                                  current_country,
-                                  N,
-                                  sim_weeks,
-                                  m[1],
-                                  beta,
-                                  q,
-                                  gamma,
-                                  alpha,
-                                  phi,
-                                  eta,
-                                  vacc_eff,
-                                  active_infected,
-                                  prop_vacc))
+run_summary <- data.frame(parameter=c('JOB_ID', names(experiment)), value=c(JOB_ID,unlist(experiment[1,])))
+rownames(run_summary) <- NULL
 write_csv(run_summary, paste(JOB_ID,'run_summary.csv',sep='_'))
 write_csv(as_tibble(beta_matrix_no_interv), paste(JOB_ID,'beta_matrix_no_interv.csv',sep='_'))

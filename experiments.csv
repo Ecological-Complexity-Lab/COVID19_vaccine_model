@@ -1,0 +1,4 @@
+exp_id,current_country,sim_weeks,m,gamma,alpha,phi,eta,vacc_eff,beta,prop_vacc,b_p,active_infected,k_min,k_max,comment
+0,Israel,30,0.4,0.1428571429,0.3333333333,0.4761904762,0.6666666667,0.95,0.24,1,1,100,0.04,0.2,test
+1,Israel,30,0.4,0.1428571429,0.3333333333,0.4761904762,0.6666666667,0.95,0.31,1,1,1000,1,2,increase beta
+2,Israel,30,0.4,0.1428571429,0.3333333333,0.4761904762,0.6666666667,0.95,0.31,1,0.5,1000,1,2,reduce presymptomatic infection rate
