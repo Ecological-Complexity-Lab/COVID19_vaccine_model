@@ -11,6 +11,19 @@ state_colors <- tibble(state=model_states,
                        col=factor(c('yellow','navy','orange','#c91212','pink','dark green','green','black','gray','cyan'), 
                                   levels=c('yellow','navy','orange','#c91212','pink','dark green','green','black','gray','cyan')))
 
+gather_experiments <- function(){
+  files <- list.files(pattern = 'run_summary')
+  experiments <- NULL
+  for (f in files){
+    suppressMessages(tmp <- read_csv(f))
+    tmp %<>% 
+      spread(parameter, value) %>% 
+      select(JOB_ID, exp_id, everything())
+    experiments %<>% bind_rows(tmp)
+  }
+  experiments %<>% relocate(comment, .after = last_col())
+  return(experiments)
+}
 
 # Functions to run the model ----------------------------------------------
 
