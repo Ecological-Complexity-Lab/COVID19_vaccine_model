@@ -8,7 +8,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- 0; JOB_ID <- 270; max_weeks=15
+# args <- 7; JOB_ID <- 270; max_weeks=15
 JOB_ID <- Sys.getenv("JOB_ID")
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -173,7 +173,7 @@ Table_1 <- age_structure %>%
   select(i=age_group_id,
          Age=age_group,
          Proportion) %>% 
-  mutate(h=read_csv('hospitalization_rate_of_symptomatic.csv')$mean, # This is the probability of hospitalization
+  mutate(h=read_csv('hospitalization_rate.csv')$percent_hospitalized, # This is the probability of hospitalization
          # The proportion of infected people at each age group, from
          # https://datadashboard.health.gov.il/COVID-19/general accessed
          # 2020-20-09 Used to distribute the actively infected (active_infected)
