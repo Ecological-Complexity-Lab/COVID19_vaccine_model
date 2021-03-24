@@ -11,7 +11,7 @@ state_colors <- tibble(state=model_states,
                        col=factor(c('yellow','navy','orange','#c91212','pink','dark green','green','black','gray','cyan'), 
                                   levels=c('yellow','navy','orange','#c91212','pink','dark green','green','black','gray','cyan')))
 
-gather_experiments <- function(){
+gather_experiments <- function(all_params=F){
   files <- list.files(pattern = 'run_summary')
   experiments <- NULL
   for (f in files){
@@ -22,7 +22,9 @@ gather_experiments <- function(){
     experiments %<>% bind_rows(tmp)
   }
   experiments %<>% relocate(comment, .after = last_col())
-  return(experiments)
+  if (all_params){ return(experiments) } else {
+    return(experiments %>% select(JOB_ID, exp_id, current_country, sim_weeks, b_p, k_min, k_max, prop_vacc, active_infected, -m, -beta, -alpha, -eta, -gamma, -phi, -vacc_eff))
+  }
 }
 
 # Functions to run the model ----------------------------------------------
