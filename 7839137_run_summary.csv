@@ -1,0 +1,18 @@
+parameter,value
+JOB_ID,7839137
+exp_id,12
+current_country,Israel
+sim_weeks,30
+m,0.4
+gamma,0.1428571429
+alpha,0.3333333333
+phi,0.4761904762
+eta,0.6666666667
+vacc_eff,0.95
+beta,0.31
+prop_vacc,1
+b_p,1
+active_infected,100
+k_min,0.1
+k_max,0.5
+comment,test effect of b_p
