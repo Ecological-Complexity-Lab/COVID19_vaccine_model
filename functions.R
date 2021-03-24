@@ -23,7 +23,7 @@ gather_experiments <- function(all_params=F){
   }
   experiments %<>% relocate(comment, .after = last_col())
   if (all_params){ return(experiments) } else {
-    return(experiments %>% select(JOB_ID, exp_id, current_country, sim_weeks, b_p, k_min, k_max, prop_vacc, active_infected, -m, -beta, -alpha, -eta, -gamma, -phi, -vacc_eff))
+    return(experiments %>% select(JOB_ID, exp_id, current_country, sim_weeks, b_p, k_min, k_max, prop_vacc, active_infected))
   }
 }
 
