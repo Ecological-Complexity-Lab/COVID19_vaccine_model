@@ -17,3 +17,6 @@ exp_id,current_country,sim_weeks,m,gamma,alpha,phi,eta,vacc_eff,beta,prop_vacc,b
 15,Israel,30,0.4,0.1428571429,0.2,0.4761904762,0.6666666667,0.95,0.31,1,0.5,100,0.1,0.5,Looking for effects on threshold
 16,Israel,30,0.4,0.1428571429,0.3333333333,1,0.6666666667,0.95,0.31,1,0.5,100,0.1,0.5,Looking for effects on threshold
 17,Israel,30,0.4,0.1428571429,0.3333333333,0.4761904762,0.5,0.95,0.31,1,0.5,100,0.1,0.5,Looking for effects on threshold
+18,Israel,30,0.4,0.1428571429,0.15625,0.4761904762,0.6666666667,0.95,0.31,1,0.5,100,0.1,0.5,"Effect of alpha, after fitting to early Israel data"
+19,Israel,30,0.4,0.1428571429,0.15625,0.4761904762,1,0.95,0.31,1,0.5,100,0.1,0.5,"Effect of alpha, after fitting to early Israel data"
+
