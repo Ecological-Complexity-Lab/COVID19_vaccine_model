@@ -8,7 +8,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- 7; JOB_ID <- 270; max_weeks=15
+# args <- 19; JOB_ID <- 100; max_weeks=15
 JOB_ID <- Sys.getenv("JOB_ID")
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -170,7 +170,7 @@ hindex <- indices[[8]] # index numbers for age groups for hospitalized
 vindex <- indices[[9]] # index numbers for age groups for vaccinated
 
 Table_1 <- age_structure %>% 
-  select(i=age_group_id,
+  dplyr::select(i=age_group_id,
          Age=age_group,
          Proportion) %>% 
   mutate(h=read_csv('hospitalization_rate.csv')$percent_hospitalized, # This is the probability of hospitalization

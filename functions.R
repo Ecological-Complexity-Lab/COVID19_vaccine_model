@@ -18,12 +18,12 @@ gather_experiments <- function(all_params=F){
     suppressMessages(tmp <- read_csv(f))
     tmp %<>% 
       spread(parameter, value) %>% 
-      select(JOB_ID, exp_id, everything())
+      dplyr::select(JOB_ID, exp_id, everything())
     experiments %<>% bind_rows(tmp)
   }
   experiments %<>% relocate(comment, .after = last_col())
   if (all_params){ return(experiments) } else {
-    return(experiments %>% select(JOB_ID, exp_id, current_country, sim_weeks, b_p, k_min, k_max, prop_vacc, active_infected))
+    return(experiments %>% dplyr::select(JOB_ID, exp_id, current_country, sim_weeks, b_p, k_min, k_max, prop_vacc, active_infected))
   }
 }
 
