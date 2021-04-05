@@ -2,7 +2,7 @@
 
 #$ -q shai.q
 #$ -cwd
-#$ -N COVD19_IL
+#$ -N IL
 
 #-l h_vmem=2G
 

@@ -129,31 +129,30 @@ bind_rows(control, vaccine) %>%
         axis.text = element_text(size=14, color = 'black'))
 dev.off()
 
-
 # Dynamics comparison of two vaccination strategies with uniform SD -----------------------
-vaccine_ea <- 
-  country_tbl %>% 
+vaccine_ea <-
+  country_tbl %>%
   # filter (time<=7*12) %>%  #Plot 12 weeks for convenience
-  filter(from=='juveniles_adults_elderly') %>% 
-  filter(vto=='elderly_adults') %>% 
-  filter(SD==0) %>% 
-  filter(k_percent==k_percent_max) %>% 
-  mutate(Proportion=cases/N) %>% 
+  filter(from=='juveniles_adults_elderly') %>%
+  filter(vto=='elderly_adults') %>%
+  filter(SD==0) %>%
+  filter(k_percent==k_percent_max) %>%
+  mutate(Proportion=cases/N) %>%
   mutate(grp='Elderly first')
-vaccine_ae <- 
-  country_tbl %>% 
+vaccine_ae <-
+  country_tbl %>%
   # filter (time<=7*12) %>%  #Plot 12 weeks for convenience
-  filter(from=='juveniles_adults_elderly') %>% 
-  filter(vto=='adults_elderly') %>% 
-  filter(SD==0) %>% 
-  filter(k_percent==k_percent_max) %>% 
-  mutate(Proportion=cases/N) %>% 
+  filter(from=='juveniles_adults_elderly') %>%
+  filter(vto=='adults_elderly') %>%
+  filter(SD==0) %>%
+  filter(k_percent==k_percent_max) %>%
+  mutate(Proportion=cases/N) %>%
   mutate(grp='Adults first')
 
 pdf(plotname('SI_IHV_dynamics_ea_vs_ae.pdf'), 10, 8)
-bind_rows(vaccine_ae, vaccine_ea) %>% 
-  mutate(grp=factor(grp, levels = c('Adults first','Elderly first'))) %>% 
-  filter(state %in% c('I','H','V')) %>% 
+bind_rows(vaccine_ae, vaccine_ea) %>%
+  mutate(grp=factor(grp, levels = c('Adults first','Elderly first'))) %>%
+  filter(state %in% c('I','H','V')) %>%
   ggplot(aes(x=time, y=Proportion, linetype=grp, color=col))+
   geom_line(size=1.2)+
   facet_wrap(~age_group, scales = 'free')+
@@ -161,164 +160,9 @@ bind_rows(vaccine_ae, vaccine_ea) %>%
   scale_color_identity(guide = 'legend', labels=c('I','H','V'))+
   theme_bw()+
   theme(panel.grid = element_blank(),
-        axis.title = element_text(size=14, color = 'black'), 
+        axis.title = element_text(size=14, color = 'black'),
         axis.text = element_text(size=14, color = 'black'))
 dev.off()
-
-
-
-# Compare two vaccination strategies with no SD -------------------------------------------------
-
-H_control <- 
-  country_tbl %>% 
-  filter(state=='H') %>% 
-  filter(from=='juveniles_adults_elderly') %>% 
-  filter(SD==0) %>% 
-  filter(k_percent==0) %>% 
-  filter(time==max(times)) %>% 
-  dplyr::select(k_percent, age_group, cases, vto)
-
-H_vaccine <- 
-  country_tbl %>% 
-  filter(state=='H') %>% 
-  filter(from=='juveniles_adults_elderly') %>% 
-  filter(SD==0) %>% 
-  filter(time==max(times)) %>% 
-  dplyr::select(k_percent, age_group, cases, vto)
-
-pdf(plotname('SI_compare_vaccination_strategies_SD0_Heff.pdf'), 12, 8)
-left_join(H_vaccine, H_control, by=c("age_group", "vto")) %>% 
-  dplyr::select(vto, age_group, k_percent_con=k_percent.y, k_percent_vacc=k_percent.x, cases_con=cases.y, cases_vacc=cases.x) %>% 
-  group_by(vto, k_percent_con, k_percent_vacc) %>% 
-  summarise(tot_cases_con=sum(cases_con), tot_cases_vac=sum(cases_vacc)) %>% 
-  mutate(H_eff=(1-tot_cases_vac/tot_cases_con)*100) %>% 
-  ggplot(aes(x=k_percent_vacc, y=H_eff, color=vto))+
-  geom_line(size=1.5)+geom_point(size=3)+
-  geom_vline(xintercept = k_min, linetype='dotted')+
-  scale_x_continuous(breaks = k_range_percent) +
-  # scale_y_continuous(breaks = seq(0,30,5)) + 
-  scale_color_manual(values = c('red','blue'), labels=c('Adults first','Elderly first'))+
-  labs(x='% population vaccinated per day', y='% reduction in hospitalizations\n compared to no vaccines',
-       color='Vaccine\n strategy')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=20, color='black'),
-        legend.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        legend.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=20, color='black'))
-dev.off()
-
-pdf(plotname('SI_compare_vaccination_strategies_SD0_prop_H.pdf'), 12, 8)
-H_vaccine %>% 
-  group_by(vto, k_percent) %>% 
-  summarise(tot_cases=sum(cases)) %>% 
-  ggplot(aes(x=k_percent, y=tot_cases/N*100, color=vto))+
-  geom_line(size=1.5)+geom_point(size=3)+
-  geom_vline(xintercept = k_min, linetype='dotted')+
-  scale_color_manual(values = c('red','blue'), labels=c('Adults first','Elderly first'))+
-  scale_x_continuous(breaks = k_range_percent) +
-  labs(x='% population vaccinated per day', y='% population hospitalized', color='Vaccine\n strategy')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=20, color='black'),
-        panel.grid = element_blank(),
-        legend.title = element_text(size=16, color='black'),
-        legend.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=20, color='black'))
-dev.off()
-
-pdf(plotname('SI_compare_vaccination_strategies_SD0_Heff_by_age.pdf'), 12, 8)
-left_join(H_vaccine, H_control, by=c("age_group", "vto")) %>% 
-  dplyr::select(vto, age_group, k_percent_con=k_percent.y, k_percent_vacc=k_percent.x, cases_con=cases.y, cases_vacc=cases.x) %>% 
-  mutate(H_eff=(1-cases_vacc/cases_con)*100) %>% 
-  ggplot(aes(x=k_percent_vacc, y=H_eff, color=vto))+
-  geom_line()+geom_point()+
-  geom_vline(xintercept = k_min, linetype='dotted')+
-  facet_wrap(~age_group)+
-  scale_x_continuous(breaks = k_range_percent) +
-  scale_color_manual(values = c('red','blue'), labels=c('20-59 then 60+','60+ then 20-59'))+
-  labs(x='% population vaccinated per day', y='% reduction in hospitalizations\n compared to no vaccines',
-       color='Vaccine\n strategy')+  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid.minor = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()
-
-pdf(plotname('SI_compare_vaccination_strategies_SD0_prop_H_by_age.pdf'), 12, 8)
-H_vaccine %>% 
-  group_by(vto, age_group , k_percent) %>% 
-  summarise(tot_cases=sum(cases)) %>% 
-  ggplot(aes(x=k_percent, y=tot_cases/N*100, color=vto))+
-  geom_line()+geom_point()+
-  geom_vline(xintercept = k_min, linetype='dotted')+
-  facet_wrap(~age_group)+
-  scale_x_continuous(breaks = k_range_percent) +
-  scale_color_manual(values = c('red','blue'), labels=c('Adults first','Elderly first'))+
-  labs(x='% population vaccinated per day', y='% population hospitalized', color='Vaccine\n strategy')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=20, color='black'),
-        legend.title = element_text(size=16, color='black'),
-        legend.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=20, color='black'))
-dev.off()
-
-# Uniform SD --------------------------------------------------------------
-# H_control <- 
-#   country_tbl %>% 
-#   filter(state=='H') %>% 
-#   filter(from=='juveniles_adults_elderly') %>% 
-#   filter(k_percent==0) %>% 
-#   filter(time==max(times)) # Number of cases at the end of the simulation
-# H_vaccine <- 
-#   country_tbl %>% 
-#   filter(state=='H') %>% 
-#   filter(from=='juveniles_adults_elderly') %>% 
-#   filter(time==max(times)) # Number of cases at the end of the simulation
-# 
-# data_to_plot <- 
-#   left_join(H_vaccine, H_control, by=c("age_group", "vto", "SD")) %>% 
-#   dplyr::select(SD, vto, age_group, k_percent_con=k_percent.y, k_percent_vacc=k_percent.x, cases_con=cases.y, cases_vacc=cases.x) %>% 
-#   group_by(vto, SD, k_percent_vacc) %>% 
-#   summarise(tot_cases_con=sum(cases_con), tot_cases_vac=sum(cases_vacc)) %>% 
-#   mutate(H_eff=(1-tot_cases_vac/tot_cases_con)*100) %>% 
-#   mutate(k_percent_vacc=as.factor(k_percent_vacc)) %>% 
-#   # filter(k_percent_vacc!=0) %>%
-#   ungroup() %>% 
-#   mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly')))
-# 
-# max_heff <- data_to_plot %>% 
-#   group_by(vto) %>% 
-#   filter(H_eff==max(H_eff)) %>% 
-#   dplyr::select(vto, SD, H_eff)
-# 
-# pdf(plotname('uniform_sd.pdf'), 12, 8)
-# data_to_plot %>% 
-#   filter(k_percent_vacc!=0) %>% 
-# ggplot(aes(x=SD, y=H_eff, color=k_percent_vacc))+
-# facet_wrap(~vto, labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first')))+
-# geom_line(size=1.5)+
-# geom_vline(data=max_heff, aes(xintercept = SD), linetype='dashed', size=1)+
-# # geom_hline(yintercept = 30, linetype='dotted', color='black', size=1)+
-# scale_x_continuous(breaks = seq(0,1,0.2)) + 
-# scale_y_continuous(breaks = seq(0,100,10)) +
-# scale_color_viridis_d()+
-# labs(x='% reduction in contact rates', y='% reduction in hospitalizations\n compared to no vaccines', color='% vaccinated\n per day')+
-# theme_bw() + 
-# theme(axis.text = element_text(size=16, color='black'),
-#       axis.title = element_text(size=16, color='black'),
-#       panel.spacing = unit(2, "lines"))
-# dev.off()
-
-
-# ggplot(data=data_to_plot, aes(x=SD, y=tot_cases_vac/N*100, color=k_percent_vacc, linetype=vto))+
-#   geom_line(size=1.5)+
-#   scale_x_continuous(breaks = seq(0,1,0.2)) + 
-#   scale_color_viridis_d()+
-#   labs(x='% reduction in contact rates', y='% hospitalized', color='% vaccinated\n per day')+
-#   theme_bw() + 
-#   theme(axis.text = element_text(size=16, color='black'),
-#         axis.title = element_text(size=16, color='black'),
-#         panel.spacing = unit(2, "lines"))
 
 
 # Targeted and Uniform SD -------------------------------------------------------------
@@ -423,7 +267,7 @@ dat %>%
   scale_color_manual(values = c('red','orange','brown'), labels=c('0','0.5','0.8'))+
   scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
   scale_x_continuous(limits=c(0,max(dat$time)))+
-  labs(x='Days', y='% daily change in active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
+  labs(x='Days', y='Proportion daily change in active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
   theme_bw() + 
   theme(axis.text = element_text(size=16, color='black'),
         axis.title = element_text(size=16, color='black'),
@@ -431,46 +275,46 @@ dat %>%
         panel.spacing = unit(2, "lines"))
 dev.off()
 
-pdf(plotname('SI_r_p_dynamics.pdf'), 12, 8)
-dat %>% 
-  filter(time>=10) %>% 
-  filter(SD%in%c(0,0.5,0.8)) %>%
-  # ggplot(aes(time,r, color=as.factor(k_percent)))+
-  ggplot(aes(time, r, color=as.factor(SD), linetype=vto))+
-  geom_line(size=1.2)+
-  facet_grid(from~k_percent, labeller = labeller(k_percent=c(`0`='No vaccine', `0.1`='Min. vaccination rate', `0.5`='Max. vaccination rate'),
-                                           from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-  geom_hline(yintercept = 0, linetype='dashed')+
-  scale_color_manual(values = c('red','orange','brown'), labels=c('0','0.5','0.8'))+
-  scale_linetype_discrete(labels=c('Elderly first','Adults first'))+
-  scale_x_continuous(limits=c(0,max(dat$time)))+
-  labs(x='Days', y='% daily change in active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()
+# pdf(plotname('SI_r_p_dynamics.pdf'), 12, 8)
+# dat %>% 
+#   filter(time>=10) %>% 
+#   filter(SD%in%c(0,0.5,0.8)) %>%
+#   # ggplot(aes(time,r, color=as.factor(k_percent)))+
+#   ggplot(aes(time, r, color=as.factor(SD), linetype=vto))+
+#   geom_line(size=1.2)+
+#   facet_grid(from~k_percent, labeller = labeller(k_percent=c(`0`='No vaccine', `0.1`='Min. vaccination rate', `0.5`='Max. vaccination rate'),
+#                                            from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+#   geom_hline(yintercept = 0, linetype='dashed')+
+#   scale_color_manual(values = c('red','orange','brown'), labels=c('0','0.5','0.8'))+
+#   scale_linetype_discrete(labels=c('Elderly first','Adults first'))+
+#   scale_x_continuous(limits=c(0,max(dat$time)))+
+#   labs(x='Days', y='% daily change in active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()
 
 
-pdf(plotname('SI_r_p_time.pdf'), 12, 8)
-dat %>%
-  group_by(from, vto, SD, k_percent) %>% slice(which(r<=0)) %>% top_n(1) %>% 
-  ggplot(aes(y=time, x=SD, color=as.factor(k_percent)))+
-  # geom_point(size=3)+
-  geom_line(size=1.5)+
-  facet_grid(from~vto,labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first'),
-                                           from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-  scale_color_viridis_d()+
-  labs(x='% reduction in contact rates', y='Days to reach r_p=0', color='% vaccinated\n per day')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        legend.title = element_text(size=16, color='black'),
-        legend.text = element_text(size=16, color='black'),
-        panel.grid.minor = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()
+# pdf(plotname('SI_r_p_time.pdf'), 12, 8)
+# dat %>%
+#   group_by(from, vto, SD, k_percent) %>% slice(which(r<=0)) %>% top_n(1) %>% 
+#   ggplot(aes(y=time, x=SD, color=as.factor(k_percent)))+
+#   # geom_point(size=3)+
+#   geom_line(size=1.5)+
+#   facet_grid(from~vto,labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first'),
+#                                            from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+#   scale_color_viridis_d()+
+#   labs(x='% reduction in contact rates', y='Days to reach r_p=0', color='% vaccinated\n per day')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         legend.title = element_text(size=16, color='black'),
+#         legend.text = element_text(size=16, color='black'),
+#         panel.grid.minor = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()
 
 pdf(plotname('SI_r_heatmap.pdf'), 12, 8)
 country_tbl %>%  
@@ -500,20 +344,344 @@ country_tbl %>%
         panel.spacing = unit(2, "lines"))
 dev.off()
 
-# dat <- 
+
+
+
+
+# Proportion of hospitalizations ------------------------------------------
+# country_tbl %>% distinct(from)
+
+N_per_age <- tibble(age_group=unique(country_tbl$age_group), N_j=N_age_groups)
+d <- country_tbl %>% 
+  filter(state=='H') %>% 
+  mutate(k_percent=as.factor(k_percent)) %>% 
+  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
+  mutate(from=factor(from, levels=c('juveniles_adults_elderly','adults','elderly'))) %>% 
+  group_by(vto, from, SD, k_percent, time) %>% 
+  summarise(tot_cases=sum(cases)) %>% 
+  filter(tot_cases<=0.99*max(tot_cases)) %>% # Cannot take the maximum itself because it is a continous model and the max is always at the last time point.
+  slice_tail(n=1)
+
+# pdf(plotname('MT_strategy_comparison_with_time_H.pdf'), 12, 8)
+# d %>% 
+#   filter(k_percent%in%c(0,k_min, k_max)) %>% 
+#   ggplot(aes(x=SD, y=tot_cases/N*100, color=from, linetype=vto))+
+#   facet_grid(~k_percent, labeller = labeller(k_percent=c(`0`='No vaccine', `0.1`='Min. vaccination rate', `0.5`='Max. vaccination rate')))+
+#   geom_line(size=1)+
+#   geom_point(aes(size=time), alpha=0.5)+
+#   scale_size(range=c(1,10))+
+#   scale_x_continuous(breaks = seq(0,1,0.2)) + 
+#   scale_linetype_manual(values = c('solid','dotted'), labels = c("Elderly first", "Adults first"))+
+#   scale_color_manual(values = c('black','orange','purple'), labels = c("Uniform", "Adults","Elderly"))+
+#   labs(x='% reduction in contact rates', y='% population hospitalized', 
+#        color='SD strategy', linetype='Vaccination\n strategy', size='Time to max\n hospitalizations')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()
+
+pdf(plotname('MT_strategy_comparison_H_max_vaccination.pdf'), 12, 8)
+d %>% 
+  filter(k_percent == k_max) %>% 
+  ggplot(aes(x=SD, y=tot_cases/N*100, color=from, linetype=vto))+
+  geom_line(size=1)+
+  geom_point(size=3, alpha=0.5)+
+  scale_size(range=c(1,10))+
+  scale_x_continuous(breaks = seq(0,1,0.2)) + 
+  scale_y_continuous(limits = round(c(0,max(d$tot_cases/N*100))), n.breaks = 5) + 
+  scale_linetype_manual(values = c('solid','dotted'), labels = c("Elderly first", "Adults first"))+
+  scale_color_manual(values = c('black','orange','purple'), labels = c("Uniform", "Adults","Elderly"))+
+  labs(x='% reduction in contact rates', y='% population hospitalized', 
+       color='SD strategy', linetype='Vaccination\n strategy')+
+  theme_bw() + 
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.grid = element_blank(),
+        panel.spacing = unit(2, "lines"))
+dev.off()
+
+# pdf(plotname('SI_time_to_max_H.pdf'), 12, 8)
+# d %>% 
+#   ggplot(aes(SD, time, color=k_percent))+
+#   geom_point()+geom_line()+
+#   facet_grid(from~vto, labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first'),
+#                                            from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+#   labs(x='% reduction in contact rates', y='Days to reach max. hospitalizations', color='% vaccinated\n per day')+
+#   scale_color_viridis_d()+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()
+
+dat <- country_tbl %>% 
+  filter(state=='H') %>% 
+  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
+  mutate(from=factor(from, levels=c('adults','elderly','juveniles_adults_elderly'))) %>% 
+  group_by(vto, from, SD, k_percent, time) %>% 
+  summarise(tot_cases=sum(cases)) %>% 
+  filter(tot_cases<=0.99*max(tot_cases)) %>% # Cannot take the maximum itself because it is a continous model and the max is always at the last time point.
+  slice_tail(n=1) %>% 
+  # filter(from=='juveniles_adults_elderly', SD==0.4, k_percent==0.5) %>% # For testing
+  group_by(from, SD, k_percent) %>% 
+  # Advatange of elderly over adult vaccination is calculated as the % reduction
+  # (negative) or increase (positive): (H_elderly-H_adult)/H_elderly
+  summarise(diff=(tot_cases[2]-tot_cases[1])/tot_cases[2]*100,
+            diff_time=(time[2]-time[1])/time[2]*100)
+
+# pdf(plotname('SI_advantage_vto_H.pdf'), 12, 8)
+# dat %>% 
+#   filter(k_percent%in%c(k_min, k_max)) %>% 
+#   ggplot(aes(x=SD, y=diff, color=from))+
+#   facet_grid(~k_percent)+
+#   geom_line(size=1.5)+
+#   # geom_point(aes(size=diff_time), alpha=0.5)+
+#   geom_point(size=3, alpha=0.5)+
+#   geom_hline(yintercept = 0, linetype='dotted', color='black')+
+#   scale_x_continuous(breaks = seq(0,1,0.2)) + 
+#   scale_y_continuous(n.breaks = 10)+
+#   scale_color_manual(values = c('black','orange','purple'), labels = c("Uniform", "Adults","Elderly"))+
+#   labs(x='% reduction in contact rates', y='% advantage for the "elderly first" strategy', 
+#        color='SD strategy')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()
+
+
+pdf(plotname('MT_advantage_vto_H_heatmap.pdf'), 12, 8)
+dat %>% 
+  ggplot(aes(x=SD, y=k_percent, fill=diff))+
+  facet_grid(~from, labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+  geom_tile(color='white')+
+  geom_label(aes(label=ifelse(round(diff)>=50,'+',NA)), size=4, label.size = 0)+
+  # scale_fill_distiller(palette = "RdPu") +
+  scale_fill_gradientn(colors=c('red','gray','blue'), limits=c(-100,100))+
+  scale_x_continuous(n.breaks = 5)+
+  scale_y_continuous(n.breaks = 4)+
+  labs(x='% reduction in contact rates', y='% vaccinated per day', fill='Elderly first\n advantage (%)')+
+  # coord_equal()+
+  coord_fixed()+
+  theme_bw() +
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.grid = element_blank(),
+        panel.spacing = unit(2, "lines"))
+dev.off()  
+
+# pdf(plotname('SI_advantage_vto_H_heatmap_labels.pdf'), 12, 8)
+# dat %>% 
+#   ggplot(aes(x=SD, y=k_percent, fill=diff))+
+#   facet_grid(~from, labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+#   geom_tile(color='white')+
+#   geom_label(aes(label=round(diff)), size=2.5)+
+#   # scale_fill_distiller(palette = "RdPu") +
+#   scale_fill_gradientn(colors=c('red','gray','blue'), limits=c(-100,100))+
+#   scale_x_continuous(n.breaks = 5)+
+#   scale_y_continuous(n.breaks = 4)+
+#   labs(x='% reduction in contact rates', y='% vaccinated per day', fill='Elderly first\n advantage (%)')+
+#   # coord_equal()+
+#   coord_fixed()+
+#   theme_bw() +
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()  
+
+
+# pdf(plotname('MT_advantage_vto_time_H_heatmap.pdf'), 12, 8)
+# dat %>% 
+#   ggplot(aes(x=SD, y=k_percent, fill=diff_time))+
+#   facet_grid(~from, labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+#   geom_tile(color='white')+
+#   # scale_fill_distiller(palette = "RdPu") +
+#   scale_fill_gradientn(colors=c('red','gray','blue'), limits=c(-max(abs(range(dat$diff_time))), max(abs(range(dat$diff_time)))))+
+#   labs(x='% reduction in contact rates', y='% vaccinated per day', fill='Elderly first\n advantage')+
+#   # coord_equal()+
+#   coord_fixed()+
+#   theme_bw() +
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()  
+
+
+# Arrange in a folder -----------------------------------------------------
+print('Organizing into a folder...')
+files <- list.files(pattern = as.character(JOB_ID))
+files <- files[-which(str_detect(files, 'run_summary'))]
+folder <- paste(JOB_ID, max_weeks,current_country,sep = '_')
+dir.create(path = folder)
+sapply(files, function(z) file.copy(z, folder))
+sapply(files, unlink)
+file.copy(paste(JOB_ID,'_run_summary.csv',sep=''), folder)
+
+
+# Unused ------------------------------------------------------------------
+
+
+
+
+
+
+# Compare two vaccination strategies with no SD -------------------------------------------------
+# 
+# H_control <- 
 #   country_tbl %>% 
-#   # filter(from=='juveniles_adults_elderly') %>% 
-#   filter(SD%in%c(0,0.5,0.75)) %>% 
-#   filter(k_percent%in%c(0,k_range_percent[round(length(k_range_percent)/2)],k_percent_max)) %>% 
-#   filter(state%in%c('I','A','P')) %>%
-#   group_by(from, vto, SD, k_percent, time) %>% 
-#   summarise(z=sum(cases)) %>% # Sum the I+A+P
+#   filter(state=='H') %>% 
+#   filter(from=='juveniles_adults_elderly') %>% 
+#   filter(SD==0) %>% 
+#   filter(k_percent==0) %>% 
+#   filter(time==max(times)) %>% 
+#   dplyr::select(k_percent, age_group, cases, vto)
+# 
+# H_vaccine <- 
+#   country_tbl %>% 
+#   filter(state=='H') %>% 
+#   filter(from=='juveniles_adults_elderly') %>% 
+#   filter(SD==0) %>% 
+#   filter(time==max(times)) %>% 
+#   dplyr::select(k_percent, age_group, cases, vto)
+# 
+# pdf(plotname('SI_compare_vaccination_strategies_SD0_Heff.pdf'), 12, 8)
+# left_join(H_vaccine, H_control, by=c("age_group", "vto")) %>% 
+#   dplyr::select(vto, age_group, k_percent_con=k_percent.y, k_percent_vacc=k_percent.x, cases_con=cases.y, cases_vacc=cases.x) %>% 
+#   group_by(vto, k_percent_con, k_percent_vacc) %>% 
+#   summarise(tot_cases_con=sum(cases_con), tot_cases_vac=sum(cases_vacc)) %>% 
+#   mutate(H_eff=(1-tot_cases_vac/tot_cases_con)*100) %>% 
+#   ggplot(aes(x=k_percent_vacc, y=H_eff, color=vto))+
+#   geom_line(size=1.5)+geom_point(size=3)+
+#   geom_vline(xintercept = k_min, linetype='dotted')+
+#   scale_x_continuous(breaks = k_range_percent) +
+#   # scale_y_continuous(breaks = seq(0,30,5)) + 
+#   scale_color_manual(values = c('red','blue'), labels=c('Adults first','Elderly first'))+
+#   labs(x='% population vaccinated per day', y='% reduction in hospitalizations\n compared to no vaccines',
+#        color='Vaccine\n strategy')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=20, color='black'),
+#         legend.title = element_text(size=16, color='black'),
+#         panel.grid = element_blank(),
+#         legend.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=20, color='black'))
+# dev.off()
+# 
+# pdf(plotname('SI_compare_vaccination_strategies_SD0_prop_H.pdf'), 12, 8)
+# H_vaccine %>% 
+#   group_by(vto, k_percent) %>% 
+#   summarise(tot_cases=sum(cases)) %>% 
+#   ggplot(aes(x=k_percent, y=tot_cases/N*100, color=vto))+
+#   geom_line(size=1.5)+geom_point(size=3)+
+#   geom_vline(xintercept = k_min, linetype='dotted')+
+#   scale_color_manual(values = c('red','blue'), labels=c('Adults first','Elderly first'))+
+#   scale_x_continuous(breaks = k_range_percent) +
+#   labs(x='% population vaccinated per day', y='% population hospitalized', color='Vaccine\n strategy')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=20, color='black'),
+#         panel.grid = element_blank(),
+#         legend.title = element_text(size=16, color='black'),
+#         legend.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=20, color='black'))
+# dev.off()
+# 
+# pdf(plotname('SI_compare_vaccination_strategies_SD0_Heff_by_age.pdf'), 12, 8)
+# left_join(H_vaccine, H_control, by=c("age_group", "vto")) %>% 
+#   dplyr::select(vto, age_group, k_percent_con=k_percent.y, k_percent_vacc=k_percent.x, cases_con=cases.y, cases_vacc=cases.x) %>% 
+#   mutate(H_eff=(1-cases_vacc/cases_con)*100) %>% 
+#   ggplot(aes(x=k_percent_vacc, y=H_eff, color=vto))+
+#   geom_line()+geom_point()+
+#   geom_vline(xintercept = k_min, linetype='dotted')+
+#   facet_wrap(~age_group)+
+#   scale_x_continuous(breaks = k_range_percent) +
+#   scale_color_manual(values = c('red','blue'), labels=c('20-59 then 60+','60+ then 20-59'))+
+#   labs(x='% population vaccinated per day', y='% reduction in hospitalizations\n compared to no vaccines',
+#        color='Vaccine\n strategy')+  theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid.minor = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+# dev.off()
+# 
+# pdf(plotname('SI_compare_vaccination_strategies_SD0_prop_H_by_age.pdf'), 12, 8)
+# H_vaccine %>% 
+#   group_by(vto, age_group , k_percent) %>% 
+#   summarise(tot_cases=sum(cases)) %>% 
+#   ggplot(aes(x=k_percent, y=tot_cases/N*100, color=vto))+
+#   geom_line()+geom_point()+
+#   geom_vline(xintercept = k_min, linetype='dotted')+
+#   facet_wrap(~age_group)+
+#   scale_x_continuous(breaks = k_range_percent) +
+#   scale_color_manual(values = c('red','blue'), labels=c('Adults first','Elderly first'))+
+#   labs(x='% population vaccinated per day', y='% population hospitalized', color='Vaccine\n strategy')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=20, color='black'),
+#         legend.title = element_text(size=16, color='black'),
+#         legend.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=20, color='black'))
+# dev.off()
+
+# Uniform SD --------------------------------------------------------------
+# H_control <- 
+#   country_tbl %>% 
+#   filter(state=='H') %>% 
+#   filter(from=='juveniles_adults_elderly') %>% 
+#   filter(k_percent==0) %>% 
+#   filter(time==max(times)) # Number of cases at the end of the simulation
+# H_vaccine <- 
+#   country_tbl %>% 
+#   filter(state=='H') %>% 
+#   filter(from=='juveniles_adults_elderly') %>% 
+#   filter(time==max(times)) # Number of cases at the end of the simulation
+# 
+# data_to_plot <- 
+#   left_join(H_vaccine, H_control, by=c("age_group", "vto", "SD")) %>% 
+#   dplyr::select(SD, vto, age_group, k_percent_con=k_percent.y, k_percent_vacc=k_percent.x, cases_con=cases.y, cases_vacc=cases.x) %>% 
+#   group_by(vto, SD, k_percent_vacc) %>% 
+#   summarise(tot_cases_con=sum(cases_con), tot_cases_vac=sum(cases_vacc)) %>% 
+#   mutate(H_eff=(1-tot_cases_vac/tot_cases_con)*100) %>% 
+#   mutate(k_percent_vacc=as.factor(k_percent_vacc)) %>% 
+#   # filter(k_percent_vacc!=0) %>%
 #   ungroup() %>% 
-#   group_by(vto, SD, k_percent) %>% 
-#   mutate(r = (z-lag(z))/lag(z))
+#   mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly')))
+# 
+# max_heff <- data_to_plot %>% 
+#   group_by(vto) %>% 
+#   filter(H_eff==max(H_eff)) %>% 
+#   dplyr::select(vto, SD, H_eff)
+# 
+# pdf(plotname('uniform_sd.pdf'), 12, 8)
+# data_to_plot %>% 
+#   filter(k_percent_vacc!=0) %>% 
+# ggplot(aes(x=SD, y=H_eff, color=k_percent_vacc))+
+# facet_wrap(~vto, labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first')))+
+# geom_line(size=1.5)+
+# geom_vline(data=max_heff, aes(xintercept = SD), linetype='dashed', size=1)+
+# # geom_hline(yintercept = 30, linetype='dotted', color='black', size=1)+
+# scale_x_continuous(breaks = seq(0,1,0.2)) + 
+# scale_y_continuous(breaks = seq(0,100,10)) +
+# scale_color_viridis_d()+
+# labs(x='% reduction in contact rates', y='% reduction in hospitalizations\n compared to no vaccines', color='% vaccinated\n per day')+
+# theme_bw() + 
+# theme(axis.text = element_text(size=16, color='black'),
+#       axis.title = element_text(size=16, color='black'),
+#       panel.spacing = unit(2, "lines"))
+# dev.off()
 
 
-
+# ggplot(data=data_to_plot, aes(x=SD, y=tot_cases_vac/N*100, color=k_percent_vacc, linetype=vto))+
+#   geom_line(size=1.5)+
+#   scale_x_continuous(breaks = seq(0,1,0.2)) + 
+#   scale_color_viridis_d()+
+#   labs(x='% reduction in contact rates', y='% hospitalized', color='% vaccinated\n per day')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.spacing = unit(2, "lines"))
 
 # growth rate -------------------------------------------------------------
 # This is calculated from the equations
@@ -698,178 +866,3 @@ dev.off()
 #         axis.title = element_text(size=16, color='black'),
 #         panel.grid.minor = element_blank(),
 #         panel.spacing = unit(2, "lines"))
-
-
-# Proportion of hospitalizations ------------------------------------------
-# country_tbl %>% distinct(from)
-
-N_per_age <- tibble(age_group=unique(country_tbl$age_group), N_j=N_age_groups)
-d <- country_tbl %>% 
-  filter(state=='H') %>% 
-  mutate(k_percent=as.factor(k_percent)) %>% 
-  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
-  mutate(from=factor(from, levels=c('juveniles_adults_elderly','adults','elderly'))) %>% 
-  group_by(vto, from, SD, k_percent, time) %>% 
-  summarise(tot_cases=sum(cases)) %>% 
-  filter(tot_cases<=0.99*max(tot_cases)) %>% # Cannot take the maximum itself because it is a continous model and the max is always at the last time point.
-  slice_tail(n=1)
-
-pdf(plotname('MT_strategy_comparison_with_time_H.pdf'), 12, 8)
-d %>% 
-  filter(k_percent%in%c(0,k_min, k_max)) %>% 
-  ggplot(aes(x=SD, y=tot_cases/N*100, color=from, linetype=vto))+
-  facet_grid(~k_percent, labeller = labeller(k_percent=c(`0`='No vaccine', `0.1`='Min. vaccination rate', `0.5`='Max. vaccination rate')))+
-  geom_line(size=1)+
-  geom_point(aes(size=time), alpha=0.5)+
-  scale_size(range=c(1,10))+
-  scale_x_continuous(breaks = seq(0,1,0.2)) + 
-  scale_linetype_manual(values = c('solid','dotted'), labels = c("Elderly first", "Adults first"))+
-  scale_color_manual(values = c('black','orange','purple'), labels = c("Uniform", "Adults","Elderly"))+
-  labs(x='% reduction in contact rates', y='% population hospitalized', 
-       color='SD strategy', linetype='Vaccination\n strategy', size='Time to max\n hospitalizations')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()
-
-pdf(plotname('MT_strategy_comparison_with_time_H_max_vaccination.pdf'), 12, 8)
-d %>% 
-  filter(k_percent == k_max) %>% 
-  ggplot(aes(x=SD, y=tot_cases/N*100, color=from, linetype=vto))+
-  geom_line(size=1)+
-  geom_point(size=3, alpha=0.5)+
-  scale_size(range=c(1,10))+
-  scale_x_continuous(breaks = seq(0,1,0.2)) + 
-  scale_y_continuous(limits = round(c(0,max(d$tot_cases/N*100))), n.breaks = 5) + 
-  scale_linetype_manual(values = c('solid','dotted'), labels = c("Elderly first", "Adults first"))+
-  scale_color_manual(values = c('black','orange','purple'), labels = c("Uniform", "Adults","Elderly"))+
-  labs(x='% reduction in contact rates', y='% population hospitalized', 
-       color='SD strategy', linetype='Vaccination\n strategy')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()
-
-pdf(plotname('SI_time_to_max_H.pdf'), 12, 8)
-d %>% 
-  ggplot(aes(SD, time, color=k_percent))+
-  geom_point()+geom_line()+
-  facet_grid(from~vto, labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first'),
-                                           from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-  labs(x='% reduction in contact rates', y='Days to reach max. hospitalizations', color='% vaccinated\n per day')+
-  scale_color_viridis_d()+
-  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.spacing = unit(2, "lines"))
-dev.off()
-
-dat <- country_tbl %>% 
-  filter(state=='H') %>% 
-  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
-  mutate(from=factor(from, levels=c('adults','elderly','juveniles_adults_elderly'))) %>% 
-  group_by(vto, from, SD, k_percent, time) %>% 
-  summarise(tot_cases=sum(cases)) %>% 
-  filter(tot_cases<=0.99*max(tot_cases)) %>% # Cannot take the maximum itself because it is a continous model and the max is always at the last time point.
-  slice_tail(n=1) %>% 
-  # filter(from=='juveniles_adults_elderly', SD==0.4, k_percent==0.5) %>% # For testing
-  group_by(from, SD, k_percent) %>% 
-  # Advatange of elderly over adult vaccination is calculated as the % reduction
-  # (negative) or increase (positive): (H_elderly-H_adult)/H_elderly
-  summarise(diff=(tot_cases[2]-tot_cases[1])/tot_cases[2]*100,
-            diff_time=(time[2]-time[1])/time[2]*100)
-
-pdf(plotname('SI_advantage_vto_H.pdf'), 12, 8)
-dat %>% 
-  filter(k_percent%in%c(k_min, k_max)) %>% 
-  ggplot(aes(x=SD, y=diff, color=from))+
-  facet_grid(~k_percent)+
-  geom_line(size=1.5)+
-  # geom_point(aes(size=diff_time), alpha=0.5)+
-  geom_point(size=3, alpha=0.5)+
-  geom_hline(yintercept = 0, linetype='dotted', color='black')+
-  scale_x_continuous(breaks = seq(0,1,0.2)) + 
-  scale_y_continuous(n.breaks = 10)+
-  scale_color_manual(values = c('black','orange','purple'), labels = c("Uniform", "Adults","Elderly"))+
-  labs(x='% reduction in contact rates', y='% advantage for the "elderly first" strategy', 
-       color='SD strategy')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()
-
-
-pdf(plotname('MT_advantage_vto_H_heatmap.pdf'), 12, 8)
-dat %>% 
-  ggplot(aes(x=SD, y=k_percent, fill=diff))+
-  facet_grid(~from, labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-  geom_tile(color='white')+
-  geom_label(aes(label=ifelse(round(diff)>=50,'+',NA)), size=4, label.size = 0)+
-  # scale_fill_distiller(palette = "RdPu") +
-  scale_fill_gradientn(colors=c('red','gray','blue'), limits=c(-100,100))+
-  scale_x_continuous(n.breaks = 5)+
-  scale_y_continuous(n.breaks = 4)+
-  labs(x='% reduction in contact rates', y='% vaccinated per day', fill='Elderly first\n advantage (%)')+
-  # coord_equal()+
-  coord_fixed()+
-  theme_bw() +
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()  
-
-pdf(plotname('SI_advantage_vto_H_heatmap_labels.pdf'), 12, 8)
-dat %>% 
-  ggplot(aes(x=SD, y=k_percent, fill=diff))+
-  facet_grid(~from, labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-  geom_tile(color='white')+
-  geom_label(aes(label=round(diff)), size=2.5)+
-  # scale_fill_distiller(palette = "RdPu") +
-  scale_fill_gradientn(colors=c('red','gray','blue'), limits=c(-100,100))+
-  scale_x_continuous(n.breaks = 5)+
-  scale_y_continuous(n.breaks = 4)+
-  labs(x='% reduction in contact rates', y='% vaccinated per day', fill='Elderly first\n advantage (%)')+
-  # coord_equal()+
-  coord_fixed()+
-  theme_bw() +
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()  
-
-
-pdf(plotname('MT_advantage_vto_time_H_heatmap.pdf'), 12, 8)
-dat %>% 
-  ggplot(aes(x=SD, y=k_percent, fill=diff_time))+
-  facet_grid(~from, labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-  geom_tile(color='white')+
-  # scale_fill_distiller(palette = "RdPu") +
-  scale_fill_gradientn(colors=c('red','gray','blue'), limits=c(-max(abs(range(dat$diff_time))), max(abs(range(dat$diff_time)))))+
-  labs(x='% reduction in contact rates', y='% vaccinated per day', fill='Elderly first\n advantage')+
-  # coord_equal()+
-  coord_fixed()+
-  theme_bw() +
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid = element_blank(),
-        panel.spacing = unit(2, "lines"))
-dev.off()  
-
-# Arrange in a folder -----------------------------------------------------
-print('Organizing into a folder...')
-files <- list.files(pattern = as.character(JOB_ID))
-files <- files[-which(str_detect(files, 'run_summary'))]
-folder <- paste(JOB_ID, max_weeks,sep = '_')
-dir.create(path = folder)
-sapply(files, function(z) file.copy(z, folder))
-sapply(files, unlink)
-file.copy(paste(JOB_ID,'_run_summary.csv',sep=''), folder)
-
