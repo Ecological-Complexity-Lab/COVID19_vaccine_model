@@ -3,7 +3,7 @@ library(readxl)
 library(lubridate)
 library(R0)
 
-current_country <- 'Luxembourg'
+current_country <- 'Israel'
 
 # Define functions
 # Define functions
@@ -38,27 +38,29 @@ covid19 %<>%
 
 early_period_limit <- 35
 obs_data <- covid19_country(current_country) %>% filter(cases>0) %>% mutate(running_day=row_number())
-# ggplot(ildata, aes(x=running_day, y=cases))+
-#   geom_point()+geom_line()+
-#   geom_vline(xintercept = early_period_limit, linetype='dashed')+
-#   theme_bw()
+obs_data %>% 
+  filter(running_day<=75) %>%
+  ggplot(aes(x=running_day, y=cases))+
+  geom_point()+geom_line()+
+  geom_vline(xintercept = early_period_limit, linetype='dashed')+
+  theme_bw()
 
 # Estimate beta using R0
-mGT<-generation.time("gamma", c(3, 1.5))
+mGT<-generation.time("gamma", c(4.5, 2.5)) # Values for generation time from Dattner et al 2021 PLOS Comp Biol.
 y <- obs_data$cases
 names(y) <- obs_data$date
 R0 <- est.R0.EG(y, mGT, begin=1, end=early_period_limit)
 beta <- R0$R*(1/7) # beta=R0*gamma
 print(beta)
 
-# Plot observed vsnd model data -------------------------------------------
+# Plot observed vs model data -------------------------------------------
 data_early <- obs_data %>% filter(running_day<=early_period_limit)
 
 # Compare fit to Israeli data. We first ran manually a simulation with a single
 # infected individual, no SD and no vaccination. We arbitrartily and manually
 # gave it the faux JOB_ID 100.
-d <- read_csv('100_results_Israel.csv')
-pdf('beta_fitting.pdf', 6, 6)
+d <- read_csv('150_results_Israel.csv')
+# pdf('beta_fitting.pdf', 6, 6)
 d %>% 
   filter(SD==0, k_percent==0, from=='juveniles_adults_elderly', vto=='elderly_adults') %>% 
   filter(time<=35) %>%
@@ -80,7 +82,7 @@ d %>%
         legend.position = c(0.2,0.8),
         axis.title = element_text(size=14, color = 'black'), 
         axis.text = element_text(size=14, color = 'black'))
-dev.off()
+# dev.off()
 
 
 # Estimate beta using a linear model

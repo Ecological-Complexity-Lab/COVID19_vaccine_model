@@ -8,7 +8,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- 19; JOB_ID <- 100; max_weeks=15
+# args <- 38; JOB_ID <- 150; max_weeks=15
 JOB_ID <- Sys.getenv("JOB_ID")
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -187,6 +187,7 @@ h <- Table_1$h # probability of hospitalization
 # active_infected <- 100 # Taken from experiments.csv
 yinit <- initialize_population(N)
 yinit[iindex] <- round(active_infected*Table_1$prop_infected_total)
+# yinit[29] <- 1 # For compariong to empirical data
 N <- sum(yinit)
 age_structure$yinit <- yinit[1:n_groups] # This is used later to calculate proportions
 
@@ -216,10 +217,14 @@ strat_ls <- list(vto_ea_SDstrat_allall,
                  vto_ea_SDstrat_eall,
                  vto_ae_SDstrat_aall)
 
+
+# For comparing with empirical data
+# k_range_percent <- 0;
+# SD_list <- 0;
+# strat_ls <- list(list(vto='elderly_adults',SD_ls=SD_list,from=all_ages,to=all_ages)) # 
+
 vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
 
-# k_range_percent <- c(0.12)
-# strat_ls <- list(list(vto='elderly_adults',SD_ls=0,from=all_ages,to=all_ages))
 
  # Run simulation ----------------------------------------------------
 print('Running simulation')
@@ -236,3 +241,4 @@ run_summary <- data.frame(parameter=c('JOB_ID', names(experiment)), value=c(JOB_
 rownames(run_summary) <- NULL
 write_csv(run_summary, paste(JOB_ID,'run_summary.csv',sep='_'))
 write_csv(as_tibble(beta_matrix_no_interv), paste(JOB_ID,'beta_matrix_no_interv.csv',sep='_'))
+
