@@ -9,7 +9,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c(8033958, 15)
+# args <- c(8033959, 15)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -416,3 +416,65 @@ dir.create(path = folder)
 sapply(files, function(z) file.copy(z, folder))
 sapply(files, unlink)
 file.copy(paste(JOB_ID,'_run_summary.csv',sep=''), folder)
+
+
+
+# Calculate Reff ----------------------------------------------------------
+library(R0)
+mGT<-generation.time("gamma", c(6, 1.5))
+
+d <- 
+country_tbl %>% 
+  filter(k_percent%in%c(0,k_min, k_max)) %>% 
+  filter(state%in%c('I','A','P')) %>%
+  mutate(k_percent=factor(k_percent)) %>% 
+  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
+  mutate(from=factor(from, levels = c('adults','elderly','juveniles_adults_elderly'))) %>% 
+  group_by(from, vto, SD, k_percent, time) %>% 
+  summarise(z=sum(cases))  # Sum the I+A+P
+
+d %>% 
+  filter(SD%in%c(0,0.5)) %>% 
+  ggplot(aes(time, z/N, color=as.factor(k_percent)))+
+  geom_line(size=1.3)+
+  facet_grid(from~vto+SD, 
+             labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+  # scale_color_brewer(type='seq', palette = 5)+
+  # scale_color_viridis_d()+
+  scale_color_manual(values = c('red','orange','brown'))+
+  # scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
+  # scale_x_continuous(limits=c(0,max(dat$time)))+
+  labs(x='Days', y='Proportion daily change in active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
+  theme_bw() + 
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.grid.minor = element_blank(),
+        panel.spacing = unit(2, "lines"))
+
+
+
+
+x  %<>% mutate(seven_day_index=c(0, rep(1:(n-1)%/%7))+1) 
+  
+
+get_R0 <- function(y){
+  R0 <- est.R0.EG(y, mGT, begin = 1, end = 7)
+  return(R0$R)
+}
+
+R0_calc <- x %>% 
+  filter(SD%in%c(0,0.5,0.8)) %>%
+  # filter(k_percent==k_max) %>% 
+  filter(seven_day_index<12) %>%
+  group_by(from, vto, SD, k_percent,seven_day_index) %>% 
+  summarise(R_eff=get_R0(round(z))) 
+
+R0_calc %>% 
+  ggplot(aes(seven_day_index*7, R_eff, color=as.factor(k_percent)))+
+  geom_point()+geom_line()+geom_hline(yintercept = 1)+
+  facet_grid(from~vto+SD)
+  
+
+test=x %>% filter(seven_day_index %in% c(6,7))
+test=test$z
+get_R0(round(test))
