@@ -8,15 +8,15 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- 38; JOB_ID <- 150; max_weeks=15
-JOB_ID <- Sys.getenv("JOB_ID")
-if (length(commandArgs(trailingOnly=TRUE))==0) {
-  stop('No arguments were found!')
-} else {
-  args <- commandArgs(trailingOnly=TRUE)
-  e_id <- as.numeric(args[1])
-}
 
+
+
+
+
+
+
+
+e_id <- 40; JOB_ID <- 40; max_weeks=15
 write_lines(paste0('START EVENT LOG -- exp id: ',e_id), paste(JOB_ID,'log.txt',sep='_'), append = F)
 
 experiments <- read_csv('experiments.csv')
@@ -40,7 +40,7 @@ source('functions.R')
 
 # beta depends on the probability of successful infection q and encounter rate, c: beta=qc.
 # Spread the effect of beta across the contact matrix:
-q <- matrix(beta/mean(contact_matrix_sym), n_groups, n_groups); q[1:2,] <- q[1:2,]*0.43; q[,1:2] <- q[,1:2]*0.63 # Set infectivity and susceptibility of children according to Dattner et al 2021
+q <- matrix(beta/mean(contact_matrix_sym), n_groups, n_groups); q[1:2,] <- q[1:2,]*0.23; q[,1:2] <- q[,1:2]*0.43 # Set infectivity and susceptibility of children according to Dattner et al 2021
 beta_matrix_no_interv <- q*contact_matrix_sym
 diag(beta_matrix_no_interv) <- diag(beta_matrix_no_interv)/2 # Need to halve the diaginal to avoid double contacts within the same age group
 
@@ -187,7 +187,7 @@ h <- Table_1$h # probability of hospitalization
 # active_infected <- 100 # Taken from experiments.csv
 yinit <- initialize_population(N)
 yinit[iindex] <- round(active_infected*Table_1$prop_infected_total)
-
+yinit[29] <- 1 # For comparing to empirical data
 N <- sum(yinit)
 age_structure$yinit <- yinit[1:n_groups] # This is used later to calculate proportions
 
@@ -219,7 +219,7 @@ strat_ls <- list(vto_ea_SDstrat_allall,
 
 
 vaccine_forcing <- set_forcing(effect = vacc_eff, effect_time = times)
-
+k_range_percent <- 0; SD_list <- 0; strat_ls <- list(list(vto='elderly_adults',SD_ls=SD_list,from=all_ages,to=all_ages))
 
  # Run simulation ----------------------------------------------------
 print('Running simulation')

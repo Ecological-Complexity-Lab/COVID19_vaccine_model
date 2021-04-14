@@ -9,7 +9,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c(8033959, 15)
+# args <- c(8299318, 15)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -421,7 +421,7 @@ file.copy(paste(JOB_ID,'_run_summary.csv',sep=''), folder)
 
 # Calculate Reff ----------------------------------------------------------
 library(R0)
-mGT<-generation.time("gamma", c(6, 1.5))
+mGT<-generation.time("gamma", c(4.5, 2.5))
 
 d <- 
 country_tbl %>% 

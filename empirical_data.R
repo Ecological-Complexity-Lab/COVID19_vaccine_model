@@ -4,6 +4,7 @@ library(lubridate)
 library(R0)
 
 current_country <- 'Israel'
+gamma=1/7
 
 # Define functions
 # Define functions
@@ -12,16 +13,6 @@ covid19_country <- function(the_country){
     filter(country==the_country) %>%
     mutate(running_day=row_number())
   return(x)
-}
-
-R0_country <- function(the_country,...){
-  # Estimate R0 from data
-  mGT<-generation.time("gamma", c(3, 1.5))
-  x <- covid19_country(the_country)
-  y <- x$cases
-  names(y) <- x$date
-  R0 <- est.R0.EG(y, mGT, ...)
-  R0
 }
 
 # Get data
@@ -39,29 +30,45 @@ covid19 %<>%
 early_period_limit <- 35
 obs_data <- covid19_country(current_country) %>% filter(cases>0) %>% mutate(running_day=row_number())
 obs_data %>% 
-  filter(running_day<=75) %>%
+  filter(running_day<=early_period_limit) %>%
   ggplot(aes(x=running_day, y=cases))+
   geom_point()+geom_line()+
   geom_vline(xintercept = early_period_limit, linetype='dashed')+
   theme_bw()
+
+data_early <- obs_data %>% filter(running_day<=early_period_limit)
 
 # Estimate beta using R0
 mGT<-generation.time("gamma", c(4.5, 2.5)) # Values for generation time from Dattner et al 2021 PLOS Comp Biol.
 y <- obs_data$cases
 names(y) <- obs_data$date
 R0 <- est.R0.EG(y, mGT, begin=1, end=early_period_limit)
-beta <- R0$R*(1/7) # beta=R0*gamma
+beta <- R0$R*gamma # beta=R0*gamma
 print(beta)
 
+# Estimate beta using a linear model
+model_lm <- lm(log(cases) ~ running_day, data=data_early)
+s <- summary(model_lm)
+coef <- coef(model_lm)[2]
+# The coefficient is actually beta-gamma so calculate beta:
+beta <- coef+gamma
+print(beta)
+
+# Check the fit of the model by plottign predicted values based on model estimation
+data_early$pred_lm <- exp(predict(model_lm))
+ggplot(data_early, aes(y=cases, x=running_day))+
+  geom_point()+geom_line()+
+  geom_line(aes(x = running_day, y = pred_lm), color='blue', size=1.3)+
+  theme_bw()
+
+
 # Plot observed vs model data -------------------------------------------
-data_early <- obs_data %>% filter(running_day<=early_period_limit)
 
 # Compare fit to Israeli data. We first ran manually a simulation with a single
 # infected individual, no SD and no vaccination. We arbitrartily and manually
-# gave it the faux JOB_ID 100.
-d <- read_csv('150_results_Israel.csv')
+# gave it some faux JOB_ID.
 # pdf('beta_fitting.pdf', 6, 6)
-d %>% 
+read_csv('40_results_Israel.csv') %>% 
   filter(SD==0, k_percent==0, from=='juveniles_adults_elderly', vto=='elderly_adults') %>% 
   filter(time<=35) %>%
   filter(state == 'I') %>%
@@ -69,11 +76,12 @@ d %>%
   summarise(cases=sum(cases)) %>% 
   dplyr::select(running_day=time, cases) %>% 
   mutate(Source='Model') %>% 
-  bind_rows(data_early %>% ungroup() %>%  dplyr::select(running_day, cases) %>%  mutate(Source='Data')) %>% 
+  bind_rows(data_early %>% dplyr::select(running_day, cases) %>%  mutate(Source='Data')) %>% 
+  bind_rows(data_early %>% dplyr::select(running_day, cases=pred_lm) %>%  mutate(Source='Fit')) %>% 
   ggplot(aes(running_day, cases, color=Source))+
   geom_line(size=1.1)+
   geom_point(size=3)+
-  scale_color_manual(values=c('purple','black'))+
+  scale_color_manual(values=c('purple','blue','black'))+
   scale_x_continuous(n.breaks = 6)+
   scale_y_continuous(n.breaks = 6)+
   theme_bw()+
@@ -85,20 +93,7 @@ d %>%
 # dev.off()
 
 
-# Estimate beta using a linear model
-# 
-# model_lm <- lm(log(cases) ~ running_day, data=ildata_early) 
-# s <- summary(model_lm)
-# beta_gamma_coef <- coef(model_lm)[2]
-# The coefficient is actually beta-gamma so calculate beta:
-# beta <- beta_gamma_coef+gamma
 
-# Check the fit of the model by plottign predicted values based on model estimation
-# ildata_early$pred_lm <- exp(predict(model_lm))
-# ggplot(ildata_early, aes(y=cases, x=running_day))+
-#   geom_point()+geom_line()+
-#   geom_line(aes(x = running_day, y = pred_lm), color='blue', size=1.3)+
-#   theme_bw()
 
 # ggplot(ildata_early, aes(y=cases, x=running_day))+
 #   geom_point()+geom_line()+
