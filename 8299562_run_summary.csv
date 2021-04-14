@@ -1,0 +1,18 @@
+parameter,value
+JOB_ID,8299562
+exp_id,15
+current_country,Israel
+sim_weeks,24
+m,0.4
+gamma,0.142857142857143
+alpha,0.15625
+phi,0.476190476190476
+eta,1
+vacc_eff,0.95
+beta,0.38
+prop_vacc,0.8
+b_p,1
+active_infected,100
+k_min,0.1
+k_max,0.5
+comment,Sensitivity analysis b_p

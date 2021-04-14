@@ -9,7 +9,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c(8299318, 15)
+# args <- c(8299548, 15)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -81,7 +81,7 @@ vaccine <-
   filter(from=='juveniles_adults_elderly') %>% 
   filter(vto=='elderly_adults') %>% 
   filter(SD==0) %>% 
-  filter(k_percent==0.4) %>% 
+  filter(k_percent==k_percent_max) %>% 
   mutate(Proportion=cases/N) %>% 
   mutate(grp='Vaccine') %>% 
   mutate(col=factor(col, levels = state_colors$col))
@@ -106,7 +106,7 @@ country_tbl %>%
   filter(from=='juveniles_adults_elderly') %>% 
   filter(vto=='elderly_adults') %>% 
   filter(age_group %in% c('0-9','30-39','60-69')) %>% 
-  filter(k_percent == 0.4) %>%
+  filter(k_percent == k_percent_max) %>%
   mutate(Proportion=cases/N) %>% 
   mutate(grp='Vaccine') %>% 
   mutate(col=factor(col, levels = state_colors$col)) %>% 
@@ -406,6 +406,130 @@ dat %>%
         panel.spacing = unit(2, "lines"))
 dev.off()
 
+# Calculate Rt ----------------------------------------------------------
+library(R0)
+# A function to calculate R_t for chunks of 7 days with method by Wallinga.
+mGT <- generation.time("gamma", c(4.5, 2.5), truncate = 7, p0 = F)
+get_Rt.EG <- function(y){
+  R0 <- est.R0.EG(y, mGT, begin = 1, end = 7)
+  return(R0$R)
+}
+
+d <- 
+  country_tbl %>% 
+  filter(k_percent%in%c(0,k_min, k_max)) %>% 
+  filter(state%in%c('I','A','P')) %>%
+  mutate(k_percent=factor(k_percent)) %>% 
+  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
+  mutate(from=factor(from, levels = c('adults','elderly','juveniles_adults_elderly'))) %>% 
+  group_by(from, vto, SD, k_percent, time) %>% 
+  summarise(z=sum(cases))  # Sum the I+A+P
+# 
+# d %>% 
+#   filter(SD%in%c(0,0.5)) %>% 
+#   ggplot(aes(time, z/N, color=as.factor(k_percent)))+
+#   geom_line(size=1.3)+
+#   facet_grid(from~vto+SD, 
+#              labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+#   # scale_color_brewer(type='seq', palette = 5)+
+#   # scale_color_viridis_d()+
+#   scale_color_manual(values = c('red','orange','brown'))+
+#   # scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
+#   # scale_x_continuous(limits=c(0,max(dat$time)))+
+#   labs(x='Days', y='Proportion of active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
+#   theme_bw() + 
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid.minor = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+
+Rt_EG <- d %>% 
+  group_by(from, vto,SD,k_percent) %>% 
+  mutate(seven_day_index=c(0, rep(1:(max(d$time)-1)%/%7))+1) %>% 
+  filter(SD%in%c(0,0.2,0.5)) %>%
+  filter(seven_day_index<=21) %>% # Sometimes crashes in later weeks
+  group_by(from, vto, SD, k_percent,seven_day_index) %>% 
+  summarise(R_eff=get_Rt.EG(round(z))) 
+
+pdf(plotname('MT_Rt.pdf'), 12, 6)
+Rt_EG %>% 
+  filter(seven_day_index>1) %>% 
+  filter(from=='juveniles_adults_elderly') %>%
+  # filter(vto=='elderly_adults') %>% 
+  ggplot(aes(seven_day_index, R_eff, color=as.factor(k_percent), linetype=vto))+
+  # geom_point()+
+  geom_line(size=1.3)+
+  geom_hline(yintercept = 1)+
+  scale_color_viridis_d()+
+  scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
+  scale_x_continuous(n.breaks = 6, limits = c(1,max(Rt_EG$seven_day_index)))+
+  scale_y_continuous(n.breaks = 6)+
+  labs(x='Week number', y='R_t', color='Vaccintion rate', linetype='Vaccination\n strategy')+
+  facet_grid(~SD)+
+  theme_bw()+
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.grid = element_blank(),
+        panel.spacing = unit(2, "lines"))
+dev.off()
+
+pdf(plotname('SI_Rt.pdf'), 12, 8)
+Rt_EG %>% 
+  filter(seven_day_index>1) %>% 
+  ggplot(aes(seven_day_index, R_eff, color=as.factor(k_percent), linetype=vto))+
+  geom_line(size=1.3)+
+  geom_hline(yintercept = 1)+
+  scale_color_viridis_d()+
+  scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
+  scale_x_continuous(n.breaks = 6, limits = c(1,max(Rt_EG$seven_day_index)))+
+  scale_y_continuous(n.breaks = 6)+
+  labs(x='Week number', y='R_t', color='Vaccintion rate', linetype='Vaccination\n strategy')+
+  facet_grid(from~SD,
+             labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+  theme_bw()+
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.grid = element_blank(),
+        panel.spacing = unit(2, "lines"))
+dev.off()
+
+
+
+
+# Alternative R_t calculation.
+# https://www.gov.il/BlobFolder/reports/research-report-n211-r-calculate/he/research-report_research-report-n211-r-calculate.pdf
+# Cori <- function(y){
+#   w_s <- generation.time("gamma", c(4.5, 2.5), truncate = 7, p0 = F)$GT
+#   denom <- 0
+#   for (s in 1:length(y)){
+#     denom <- denom+w_s[s]*y[s]
+#   }
+#   return(denom)
+# }
+# 
+# Rt_Cori <- 
+# d  %>% 
+#   group_by(from, vto,SD,k_percent) %>% 
+#   mutate(seven_day_index=c(0, rep(1:(max(d$time)-1)%/%7))+1) %>% 
+#   mutate(I_t=z-lag(z)) %>% 
+#   filter(seven_day_index>1) %>% 
+#   group_by(from, vto, SD, k_percent,seven_day_index) %>% 
+#   summarise(denom=Cori(round(z)),
+#             I_t=last(z)) %>%
+#   mutate(R_t=I_t/denom)
+# 
+# 
+# Rt_Cori %>%
+#   filter(SD %in% c(0,0.2,0.5)) %>% 
+#   filter(from=='juveniles_adults_elderly') %>%
+#   # filter(vto=='elderly_adults') %>% 
+#   ggplot(aes(seven_day_index*7, R_t, color=as.factor(k_percent), linetype=vto))+
+#   geom_point()+
+#   geom_line(size=1.3)+
+#   geom_hline(yintercept = 1)+
+#   scale_color_viridis_d()+
+#   facet_grid(~SD)+
+#   theme_bw()
 
 # Arrange in a folder -----------------------------------------------------
 print('Organizing into a folder...')
@@ -419,62 +543,4 @@ file.copy(paste(JOB_ID,'_run_summary.csv',sep=''), folder)
 
 
 
-# Calculate Reff ----------------------------------------------------------
-library(R0)
-mGT<-generation.time("gamma", c(4.5, 2.5))
 
-d <- 
-country_tbl %>% 
-  filter(k_percent%in%c(0,k_min, k_max)) %>% 
-  filter(state%in%c('I','A','P')) %>%
-  mutate(k_percent=factor(k_percent)) %>% 
-  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
-  mutate(from=factor(from, levels = c('adults','elderly','juveniles_adults_elderly'))) %>% 
-  group_by(from, vto, SD, k_percent, time) %>% 
-  summarise(z=sum(cases))  # Sum the I+A+P
-
-d %>% 
-  filter(SD%in%c(0,0.5)) %>% 
-  ggplot(aes(time, z/N, color=as.factor(k_percent)))+
-  geom_line(size=1.3)+
-  facet_grid(from~vto+SD, 
-             labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-  # scale_color_brewer(type='seq', palette = 5)+
-  # scale_color_viridis_d()+
-  scale_color_manual(values = c('red','orange','brown'))+
-  # scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
-  # scale_x_continuous(limits=c(0,max(dat$time)))+
-  labs(x='Days', y='Proportion daily change in active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
-  theme_bw() + 
-  theme(axis.text = element_text(size=16, color='black'),
-        axis.title = element_text(size=16, color='black'),
-        panel.grid.minor = element_blank(),
-        panel.spacing = unit(2, "lines"))
-
-
-
-
-x  %<>% mutate(seven_day_index=c(0, rep(1:(n-1)%/%7))+1) 
-  
-
-get_R0 <- function(y){
-  R0 <- est.R0.EG(y, mGT, begin = 1, end = 7)
-  return(R0$R)
-}
-
-R0_calc <- x %>% 
-  filter(SD%in%c(0,0.5,0.8)) %>%
-  # filter(k_percent==k_max) %>% 
-  filter(seven_day_index<12) %>%
-  group_by(from, vto, SD, k_percent,seven_day_index) %>% 
-  summarise(R_eff=get_R0(round(z))) 
-
-R0_calc %>% 
-  ggplot(aes(seven_day_index*7, R_eff, color=as.factor(k_percent)))+
-  geom_point()+geom_line()+geom_hline(yintercept = 1)+
-  facet_grid(from~vto+SD)
-  
-
-test=x %>% filter(seven_day_index %in% c(6,7))
-test=test$z
-get_R0(round(test))
