@@ -13,8 +13,14 @@ do
   qsub parse_sim.sh $j 15
 done
 
-for j in {8299615..8299617}
+for j in 8299615 8299616 8299617
 do
   echo Job parsed: $j;
   qsub parse_sim.sh $j 24
+done
+
+for j in 8390490
+do
+  echo Job parsed: $j;
+  qsub parse_sim.sh $j 15
 done
