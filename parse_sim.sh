@@ -2,8 +2,8 @@
 
 #$ -q shai.q
 #$ -cwd
-#$ -N COVD19_IL
+#$ -N ParseRes
 
-#-l h_vmem=2G
+## -l h_vmem=1G
 
-Rscript parse_sim_results.R 4192476 12
+Rscript parse_sim_results.R $1 $2

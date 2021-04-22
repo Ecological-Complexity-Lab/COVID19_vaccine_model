@@ -63,13 +63,3 @@ contact_matrix[is.na(contact_matrix)] <- 1
 
 # Make the matrix symmetric
 contact_matrix_sym <- (contact_matrix+t(contact_matrix))/2
-
-#  beta was estimated by an exponential curve: I(t)=e^beta*t
-beta <- 0.24
-
-# beta depends on the probability of successful infection q and encounter rate, c: beta=qc.
-# Spread the effect of beta across the contact matrix:
-q <- beta/mean(contact_matrix_sym)
-beta_matrix_no_interv <- q*contact_matrix_sym
-diag(beta_matrix_no_interv) <- diag(beta_matrix_no_interv)/2 # Need to halve the diaginal to avoid double contacts within the same age group
-
