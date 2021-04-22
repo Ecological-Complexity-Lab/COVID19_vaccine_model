@@ -62,36 +62,6 @@ ggplot(data_early, aes(y=cases, x=running_day))+
   theme_bw()
 
 
-# Plot observed vs model data -------------------------------------------
-
-# Compare fit to Israeli data. We first ran manually a simulation with a single
-# infected individual, no SD and no vaccination. We arbitrartily and manually
-# gave it some faux JOB_ID.
-# pdf('beta_fitting.pdf', 6, 6)
-read_csv('40_results_Israel.csv') %>% 
-  filter(SD==0, k_percent==0, from=='juveniles_adults_elderly', vto=='elderly_adults') %>% 
-  filter(time<=35) %>%
-  filter(state == 'I') %>%
-  group_by(time, state) %>% 
-  summarise(cases=sum(cases)) %>% 
-  dplyr::select(running_day=time, cases) %>% 
-  mutate(Source='Model') %>% 
-  bind_rows(data_early %>% dplyr::select(running_day, cases) %>%  mutate(Source='Data')) %>% 
-  bind_rows(data_early %>% dplyr::select(running_day, cases=pred_lm) %>%  mutate(Source='Fit')) %>% 
-  ggplot(aes(running_day, cases, color=Source))+
-  geom_line(size=1.1)+
-  geom_point(size=3)+
-  scale_color_manual(values=c('purple','blue','black'))+
-  scale_x_continuous(n.breaks = 6)+
-  scale_y_continuous(n.breaks = 6)+
-  theme_bw()+
-  labs(x='Day', y='Infected cases')+
-  theme(panel.grid = element_blank(),
-        legend.position = c(0.2,0.8),
-        axis.title = element_text(size=14, color = 'black'), 
-        axis.text = element_text(size=14, color = 'black'))
-# dev.off()
-
 
 
 
