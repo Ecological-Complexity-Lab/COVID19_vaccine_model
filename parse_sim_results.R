@@ -9,7 +9,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- c(8299551, 15)
+# args <- c(8299548, 15)
 
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -239,80 +239,6 @@ data_to_plot %>%
 dev.off()
 
 
-# # Percent change in I+A+P (r_p) ---------------------------------------------------
-# # Calculate r_p=(z_t-z_{t-1})/z_{t-1}, where z=I+A+P
-# 
-# # Time to get r_p=0
-# dat <- 
-#   country_tbl %>%  
-#   # filter(k_percent%in%c(0,k_range_percent[round(length(k_range_percent)/2)],k_percent_max)) %>% 
-#   filter(k_percent%in%c(0,k_min, k_max)) %>% 
-#   filter(state%in%c('I','A','P')) %>%
-#   mutate(k_percent=factor(k_percent)) %>% 
-#   mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
-#   mutate(from=factor(from, levels = c('adults','elderly','juveniles_adults_elderly'))) %>% 
-#   group_by(from, vto, SD, k_percent, time) %>% 
-#   summarise(z=sum(cases)) %>% # Sum the I+A+P
-#   ungroup() %>% 
-#   group_by(from, vto, SD, k_percent) %>% 
-#   mutate(r = (z-lag(z))/lag(z)) %>% 
-#   # mutate(d = (z-lag(z))) %>% 
-#   # mutate(g= (d/lag(d))) %>% 
-#   filter(time>5) # Remove the initial dip, which is an artefact
-# 
-# # dat %>% ungroup() %>% distinct(from,vto)
-# 
-# # Plot dynamics of r_p
-# pdf(plotname('MT_r_p_dynamics.pdf'), 12, 5)
-# dat %>% 
-#   filter(SD%in%c(0,0.5,0.8)) %>%
-#   filter(k_percent==k_max) %>% 
-#   ggplot(aes(time, r, color=as.factor(SD), linetype=vto))+
-#   geom_line(size=1.2)+
-#   facet_grid(~from, labeller = labeller(k_percent=c(`0`='No vaccine', `0.1`='Min. vaccination rate', `0.5`='Max. vaccination rate'),
-#                                                  from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-#   geom_hline(yintercept = 0, linetype='dashed')+
-#   scale_color_manual(values = c('red','orange','brown'), labels=c('0','0.5','0.8'))+
-#   scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
-#   scale_x_continuous(limits=c(0,max(dat$time)))+
-#   labs(x='Days', y='Proportion daily change in active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
-#   theme_bw() + 
-#   theme(axis.text = element_text(size=16, color='black'),
-#         axis.title = element_text(size=16, color='black'),
-#         panel.grid = element_blank(),
-#         panel.spacing = unit(2, "lines"))
-# dev.off()
-# 
-# 
-# pdf(plotname('SI_r_heatmap.pdf'), 12, 8)
-# country_tbl %>%  
-#   filter(state%in%c('I','A','P')) %>%
-#   mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
-#   mutate(from=factor(from, levels = c('juveniles_adults_elderly', 'adults','elderly'))) %>% 
-#   group_by(from, vto, SD, k_percent, time) %>% 
-#   summarise(z=sum(cases)) %>% # Sum the I+A+P
-#   ungroup() %>% 
-#   group_by(from, vto, SD, k_percent) %>% 
-#   mutate(r = (z-lag(z))/lag(z)) %>% 
-#   filter(time>5) %>% # Remove the initial dip, which is an artefact
-# 
-#   group_by(from, vto, SD, k_percent) %>% slice(which(r<=0)) %>% top_n(1) %>%
-#   
-#   ggplot(aes(x=SD, y=k_percent, fill=time))+
-#   facet_grid(vto~from, labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first'), from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-#   geom_tile(color='white')+
-#   scale_fill_distiller(palette = "RdPu") +
-#   # scale_fill_gradientn(colors=c('red','gray','blue'), limits=c(-max(abs(range(dat$diff_time))), max(abs(range(dat$diff_time)))))+
-#   labs(x='Proportion reduction in contact rates', y='% vaccinated per day', fill='Time to r=0')+
-#   coord_fixed()+
-#   theme_bw() +
-#   theme(axis.text = element_text(size=16, color='black'),
-#         axis.title = element_text(size=16, color='black'),
-#         panel.grid = element_blank(),
-#         panel.spacing = unit(2, "lines"))
-# dev.off()
-
-
 # Proportion of hospitalizations ------------------------------------------
 
 N_per_age <- tibble(age_group=unique(country_tbl$age_group), N_j=N_age_groups)
@@ -384,6 +310,42 @@ dat %>%
         panel.grid = element_blank(),
         panel.spacing = unit(2, "lines"))
 dev.off()  
+
+#Plot of the cumulative hospitalization curves that underlie the
+#MT_advantage_vto_H_heatmap.pdf. The example is for SD=0.5 and dashed lines for
+#the H_a and H_e values for k_percent=0.5
+
+max_lines <- country_tbl %>% 
+  filter(state=='H') %>% 
+  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>% 
+  mutate(from=factor(from, levels=c('adults','elderly','juveniles_adults_elderly'))) %>% 
+  group_by(vto, from, SD, k_percent, time) %>% 
+  summarise(tot_cases=sum(cases)) %>% 
+  filter(tot_cases<=0.99*max(tot_cases)) %>% # Cannot take the maximum itself because it is a continous model and the max is always at the last time point.
+  slice_tail(n=1) %>% 
+  filter(SD==0.5, k_percent==0.5)
+
+pdf(plotname('SI_advantage_vto_H_accumulation.pdf'), 12, 8)
+country_tbl %>%
+  filter(state=='H') %>%
+  mutate(vto=factor(vto, levels = c('elderly_adults','adults_elderly'))) %>%
+  mutate(from=factor(from, levels=c('adults','elderly','juveniles_adults_elderly'))) %>%
+  group_by(vto, from, SD, k_percent, time) %>%
+  summarise(tot_cases=sum(cases)) %>% 
+  filter(SD==0.5) %>% 
+  ggplot(aes(time, tot_cases, color=as.factor(k_percent)))+
+    geom_point()+geom_line()+
+    scale_color_viridis_d()+
+    facet_grid(vto~from, labeller = labeller(vto=c(elderly_adults='Elderly first', adults_elderly='Adults first'),
+                                             from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+    geom_hline(data=max_lines, aes(yintercept=tot_cases), linetype='dashed')+
+    labs(x='Days', y='Number of hospitalizations', color='Vaccination\n rate')+
+    theme_bw() +
+    theme(axis.text = element_text(size=16, color='black'),
+          axis.title = element_text(size=16, color='black'),
+          panel.grid = element_blank(),
+          panel.spacing = unit(2, "lines"))
+dev.off()
 
 pdf(plotname('SI_advantage_vto_H_heatmap_labels.pdf'), 12, 8)
 lim <- round(max(abs(dat$diff)))+5
