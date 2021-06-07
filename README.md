@@ -1,6 +1,9 @@
-# Pipeline for work
+This repository accompanies the paper Guerstein S, Romeo-Aznar V, Dekel M, Miron O, Davidovitch N, Puzis R, Pilosof S. _The interplay between vaccination and social distancing strategies affects COVID19 population-level outcomes_.
 
-These are general instructions of how to run simulations on HPC.
+
+# Pipeline
+
+These are general instructions of how to run simulations. The simulations are run on a cluster (high performence computer; HPC). It is also possible to run locally with minor adaptations to the code.
 
 ## Step 1: run a simulation
 
