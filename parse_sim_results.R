@@ -380,7 +380,20 @@ d <-
   mutate(from=factor(from, levels = c('adults','elderly','juveniles_adults_elderly'))) %>% 
   group_by(from, vto, SD, k_percent, time) %>% 
   summarise(z=sum(cases))  # Sum the I+A+P
- 
+
+d %>% filter(k_percent==0, from=='juveniles_adults_elderly') %>% 
+  ggplot(aes(time, z, color=as.factor(SD)))+geom_line()+facet_wrap(~vto)
+
+country_tbl %>% 
+  filter(SD%in%c(0, 0.5)) %>% 
+  filter(state=='S', k_percent==0, from=='juveniles_adults_elderly', vto=='adults_elderly') %>%
+  group_by(SD, time) %>% 
+  summarise(z=sum(cases)) %>% 
+  arrange(time,SD) %>% 
+  group_by(time) %>% 
+  summarise(ratio=z[SD==0] / z[SD==0.5]) %>% ggplot(aes(time,ratio))+geom_line()
+
+## Proportion of active cases:
 # d %>% 
 #   filter(SD%in%c(0,0.5)) %>% 
 #   ggplot(aes(time, z/N, color=as.factor(k_percent)))+

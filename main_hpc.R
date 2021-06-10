@@ -8,7 +8,7 @@ library(magrittr)
 library(tidyverse)
 library(socialmixr)
 
-# args <- 38; JOB_ID <- 150; max_weeks=15
+# args <- 1; JOB_ID <- 150; max_weeks=15
 JOB_ID <- Sys.getenv("JOB_ID")
 if (length(commandArgs(trailingOnly=TRUE))==0) {
   stop('No arguments were found!')
@@ -19,7 +19,7 @@ if (length(commandArgs(trailingOnly=TRUE))==0) {
 
 write_lines(paste0('START EVENT LOG -- exp id: ',e_id), paste(JOB_ID,'log.txt',sep='_'), append = F)
 
-experiments <- read_csv('experiments.csv')
+experiments <- read_csv('experiments/experiments.csv')
 experiment <- as.data.frame(subset(experiments, exp_id==e_id))
 for (i in 2:ncol(experiment)){
   v <- names(experiment)[i]
@@ -196,8 +196,7 @@ N_age_groups <- N*Table_1$Proportion
 times <- seq(1, 7*sim_weeks, by = 1) #  1-day time-increments
 
 # Range of vaccine deployment
-# k_range_percent <- c(0,seq(0.04,0.2,0.04)) # from 0.04% to 0.2% of the population a day
-k_range_percent <- c(0,seq(k_min,k_max,length.out = 5)) # from 0.04% to 0.2% of the population a day
+k_range_percent <- c(0,seq(k_min,k_max,length.out = 5)) # % of the population a day
 
 # Range of social distancing strength
 SD_list <- seq(0,1,by=0.1)
