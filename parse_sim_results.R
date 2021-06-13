@@ -371,6 +371,68 @@ dev.off()
 # Calculate Rt ----------------------------------------------------------
 library(R0)
 
+# Comparison of active cases and susceptible between SD=0 and 0.5, with no vaccination
+d_IAP <- 
+  country_tbl %>% 
+  filter(k_percent==0, from=='juveniles_adults_elderly', vto=='adults_elderly') %>% 
+  filter(SD%in%c(0,0.5)) %>%
+  filter(state%in%c('I','A','P')) %>%
+  group_by(SD, time) %>% 
+  summarise(z=sum(cases)) %>%   # Sum the I+A+P across ages
+  mutate(state='IAP')
+d_S <-
+  country_tbl %>% 
+  filter(k_percent==0, from=='juveniles_adults_elderly', vto=='adults_elderly') %>% 
+  filter(SD%in%c(0,0.5)) %>%
+  filter(state=='S') %>% 
+  group_by(SD, time) %>% 
+  summarise(z=sum(cases)) %>%   # Sum the S across ages
+  mutate(state='S')
+png('Infected and susceptible comparison sd 0 and 05.png', width = 1920*1.5, 1080*1.5, res = 300)
+bind_rows(d_IAP, d_S) %>% 
+  # filter(time<=21) %>% 
+  ggplot(aes(time, z, color=as.factor(SD)))+
+  geom_line(size=2)+
+  scale_color_manual(values = c('black','orange'))+
+  facet_wrap(~state, scales = 'free_y', labeller = labeller(state=c(IAP='Infected (I+A+P)',S='Susceptible')))+
+  labs(x='Days', y='Number of individuals', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
+  theme_bw() +
+  theme(axis.text = element_text(size=16, color='black'),
+        axis.title = element_text(size=16, color='black'),
+        panel.grid.minor = element_blank(),
+        panel.spacing = unit(2, "lines"))
+dev.off()  
+
+# # Ratio of suscetibles between 0 and 0.5 SD
+# country_tbl %>% 
+#   filter(SD%in%c(0, 0.5)) %>% 
+#   filter(state=='S', k_percent==0, from=='juveniles_adults_elderly', vto=='adults_elderly') %>%
+#   group_by(SD, time) %>% 
+#   summarise(z=sum(cases)) %>% 
+#   arrange(time,SD) %>% 
+#   group_by(time) %>% 
+#   summarise(ratio=z[SD==0] / z[SD==0.5]) %>% ggplot(aes(time,ratio))+geom_line()
+
+## Proportion of active cases:
+# d %>%
+#   filter(SD%in%c(0,0.5)) %>%
+#   ggplot(aes(time, z/N, color=as.factor(k_percent)))+
+#   geom_line(size=1.3)+
+#   facet_grid(from~vto+SD,
+#              labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
+#   # scale_color_brewer(type='seq', palette = 5)+
+#   # scale_color_viridis_d()+
+#   scale_color_manual(values = c('red','orange','brown'))+
+#   # scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
+#   # scale_x_continuous(limits=c(0,max(dat$time)))+
+#   labs(x='Days', y='Proportion of active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
+#   theme_bw() +
+#   theme(axis.text = element_text(size=16, color='black'),
+#         axis.title = element_text(size=16, color='black'),
+#         panel.grid.minor = element_blank(),
+#         panel.spacing = unit(2, "lines"))
+
+
 d <- 
   country_tbl %>% 
   filter(k_percent%in%c(0,k_min, k_max)) %>% 
@@ -381,38 +443,7 @@ d <-
   group_by(from, vto, SD, k_percent, time) %>% 
   summarise(z=sum(cases))  # Sum the I+A+P
 
-d %>% filter(k_percent==0, from=='juveniles_adults_elderly') %>% 
-  ggplot(aes(time, z, color=as.factor(SD)))+geom_line()+facet_wrap(~vto)
-
-country_tbl %>% 
-  filter(SD%in%c(0, 0.5)) %>% 
-  filter(state=='S', k_percent==0, from=='juveniles_adults_elderly', vto=='adults_elderly') %>%
-  group_by(SD, time) %>% 
-  summarise(z=sum(cases)) %>% 
-  arrange(time,SD) %>% 
-  group_by(time) %>% 
-  summarise(ratio=z[SD==0] / z[SD==0.5]) %>% ggplot(aes(time,ratio))+geom_line()
-
-## Proportion of active cases:
-# d %>% 
-#   filter(SD%in%c(0,0.5)) %>% 
-#   ggplot(aes(time, z/N, color=as.factor(k_percent)))+
-#   geom_line(size=1.3)+
-#   facet_grid(from~vto+SD, 
-#              labeller = labeller(from=c(adults='SD for adults',elderly='SD for elderly', juveniles_adults_elderly='Uniform SD')))+
-#   # scale_color_brewer(type='seq', palette = 5)+
-#   # scale_color_viridis_d()+
-#   scale_color_manual(values = c('red','orange','brown'))+
-#   # scale_linetype_discrete(labels = c("Elderly first", "Adults first"))+
-#   # scale_x_continuous(limits=c(0,max(dat$time)))+
-#   labs(x='Days', y='Proportion of active cases', color='% reduction\n contacts', linetype='Vaccination\n strategy')+
-#   theme_bw() + 
-#   theme(axis.text = element_text(size=16, color='black'),
-#         axis.title = element_text(size=16, color='black'),
-#         panel.grid.minor = element_blank(),
-#         panel.spacing = unit(2, "lines"))
-
-# Estimate R_t following Cori et akl 2013
+# Estimate R_t following Cori et al 2013
 # https://www.gov.il/BlobFolder/reports/research-report-n211-r-calculate/he/research-report_research-report-n211-r-calculate.pdf
 Cori <- function(y){
   w_s <- generation.time("gamma", c(4.5, 2.5), truncate = 7, p0 = F)$GT
